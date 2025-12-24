@@ -1,0 +1,269 @@
+{
+ "actions": [],
+ "creation": "2025-12-08 11:23:38.439999",
+ "doctype": "DocType",
+ "engine": "InnoDB",
+ "field_order": [
+  "order_details_tab",
+  "order_details_section",
+  "sales_order",
+  "item",
+  "customer_notes",
+  "disabled",
+  "column_break_xiso",
+  "sales_order_item",
+  "die",
+  "karigar",
+  "column_break_unjd",
+  "order_date",
+  "order_weight",
+  "qty",
+  "order_type",
+  "order_status",
+  "karigar_details_tab",
+  "karigar_section_section",
+  "karigar_incoming_date",
+  "karigar_assignment_date",
+  "karigar_actual_receive_date",
+  "column_break_hfrs",
+  "karigar_assigned_weight",
+  "karigar_received_weight",
+  "karigar_notes",
+  "display_details_section",
+  "planned_dispatch_date",
+  "column_break_foyp",
+  "actual_dispatch_date",
+  "dispatch_weight",
+  "qa_details_tab",
+  "is_qa_cleared",
+  "column_break_ijuc",
+  "qa_notes",
+  "dispatch_details_tab"
+ ],
+ "fields": [
+  {
+   "fieldname": "order_details_tab",
+   "fieldtype": "Tab Break",
+   "label": "Order Details"
+  },
+  {
+   "fieldname": "order_details_section",
+   "fieldtype": "Section Break",
+   "label": "Order Details"
+  },
+  {
+   "fieldname": "sales_order",
+   "fieldtype": "Link",
+   "in_list_view": 1,
+   "label": "Sales Order",
+   "options": "Sales Order",
+   "reqd": 1
+  },
+  {
+   "fieldname": "item",
+   "fieldtype": "Link",
+   "in_list_view": 1,
+   "label": "Item",
+   "options": "Item",
+   "reqd": 1
+  },
+  {
+   "fieldname": "customer_notes",
+   "fieldtype": "Small Text",
+   "label": "Customer Notes"
+  },
+  {
+   "default": "0",
+   "fieldname": "disabled",
+   "fieldtype": "Check",
+   "label": "Disabled"
+  },
+  {
+   "fieldname": "column_break_xiso",
+   "fieldtype": "Column Break"
+  },
+  {
+   "fieldname": "sales_order_item",
+   "fieldtype": "Link",
+   "label": "Sales Order Item",
+   "options": "Sales Order Item"
+  },
+  {
+   "fieldname": "die",
+   "fieldtype": "Link",
+   "label": "Die",
+   "options": "Item"
+  },
+  {
+   "fieldname": "karigar",
+   "fieldtype": "Link",
+   "label": "Karigar",
+   "options": "Supplier"
+  },
+  {
+   "fieldname": "column_break_unjd",
+   "fieldtype": "Column Break"
+  },
+  {
+   "fieldname": "order_date",
+   "fieldtype": "Date",
+   "label": "Order Date",
+   "reqd": 1
+  },
+  {
+   "fieldname": "order_weight",
+   "fieldtype": "Float",
+   "label": "Order Weight"
+  },
+  {
+   "default": "1",
+   "fieldname": "qty",
+   "fieldtype": "Float",
+   "label": "Quantity",
+   "precision": "0"
+  },
+  {
+   "fieldname": "order_type",
+   "fieldtype": "Select",
+   "label": "Order Type"
+  },
+  {
+   "default": "Unassigned",
+   "fieldname": "order_status",
+   "fieldtype": "Select",
+   "label": "Order Status",
+   "options": "Unassigned\nAssigned\nIncoming\nInternal QA\nPending Delivery\nDelivered"
+  },
+  {
+   "fieldname": "karigar_details_tab",
+   "fieldtype": "Tab Break",
+   "label": "Karigar Details"
+  },
+  {
+   "fieldname": "karigar_section_section",
+   "fieldtype": "Section Break",
+   "label": "Karigar Section"
+  },
+  {
+   "fieldname": "karigar_incoming_date",
+   "fieldtype": "Date",
+   "label": "Karigar Incoming Date"
+  },
+  {
+   "fieldname": "karigar_assignment_date",
+   "fieldtype": "Date",
+   "label": "Karigar Assignment Date"
+  },
+  {
+   "fieldname": "karigar_actual_receive_date",
+   "fieldtype": "Date",
+   "label": "Karigar Actual Receive Date"
+  },
+  {
+   "fieldname": "column_break_hfrs",
+   "fieldtype": "Column Break"
+  },
+  {
+   "fieldname": "karigar_assigned_weight",
+   "fieldtype": "Float",
+   "label": "Karigar Assigned Weight"
+  },
+  {
+   "fieldname": "karigar_received_weight",
+   "fieldtype": "Float",
+   "label": "Karigar Received Weight"
+  },
+  {
+   "fieldname": "karigar_notes",
+   "fieldtype": "Small Text",
+   "label": "Karigar Notes"
+  },
+  {
+   "fieldname": "dispatch_details_tab",
+   "fieldtype": "Tab Break",
+   "label": "Dispatch Details"
+  },
+  {
+   "fieldname": "display_details_section",
+   "fieldtype": "Section Break",
+   "label": "Dispatch Details"
+  },
+  {
+   "fieldname": "planned_dispatch_date",
+   "fieldtype": "Date",
+   "label": "Planned Dispatch Date"
+  },
+  {
+   "fieldname": "column_break_foyp",
+   "fieldtype": "Column Break"
+  },
+  {
+   "fieldname": "actual_dispatch_date",
+   "fieldtype": "Date",
+   "label": "Actual Dispatch Date"
+  },
+  {
+   "fieldname": "qa_details_tab",
+   "fieldtype": "Tab Break",
+   "label": "QA Details"
+  },
+  {
+   "default": "0",
+   "fieldname": "is_qa_cleared",
+   "fieldtype": "Check",
+   "label": "Is QA Cleared"
+  },
+  {
+   "fieldname": "column_break_ijuc",
+   "fieldtype": "Column Break"
+  },
+  {
+   "fieldname": "qa_notes",
+   "fieldtype": "Small Text",
+   "label": "QA Notes"
+  },
+  {
+   "fieldname": "dispatch_weight",
+   "fieldtype": "Float",
+   "label": "Dispatch Weight"
+  }
+ ],
+ "grid_page_length": 50,
+ "index_web_pages_for_search": 1,
+ "links": [],
+ "modified": "2025-12-24 14:00:53.265852",
+ "modified_by": "Administrator",
+ "module": "AmPower Keerti Pristine Jewels",
+ "name": "Order Ledger",
+ "owner": "Administrator",
+ "permissions": [
+  {
+   "create": 1,
+   "delete": 1,
+   "email": 1,
+   "export": 1,
+   "print": 1,
+   "read": 1,
+   "report": 1,
+   "role": "System Manager",
+   "share": 1,
+   "write": 1
+  },
+  {
+   "create": 1,
+   "delete": 1,
+   "email": 1,
+   "export": 1,
+   "print": 1,
+   "read": 1,
+   "report": 1,
+   "role": "KJ Admin",
+   "share": 1,
+   "write": 1
+  }
+ ],
+ "row_format": "Dynamic",
+ "sort_field": "modified",
+ "sort_order": "DESC",
+ "states": []
+}
