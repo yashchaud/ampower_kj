@@ -29,9 +29,9 @@ app_include_css = [
     "/assets/ampower_kj/css/ampower_kj.css",
  
 ]
-app_include_js = [
+# app_include_js = [
   
- ]
+#  ]
 
 # include js, css files in header of web template
 # web_include_css = "/assets/ampower_kj/css/ampower_kj.css"
