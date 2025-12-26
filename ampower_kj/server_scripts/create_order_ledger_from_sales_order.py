@@ -40,8 +40,15 @@ def execute(doc, method=None):
 				if value is not None:
 					order_ledger_dict[fieldname] = value
 
+
 		# Override ONLY fields that need different values or come from parent Sales Order
 		order_ledger_dict["sales_order"] = doc.name
+		order_ledger_dict["die"] = item.get("soi_die")
+		order_ledger_dict["karigar"] = item.get("soi_karigar")
+		order_ledger_dict["customer_notes"] = item.get("soi_customer_notes")
+		order_ledger_dict["planned_dispatch_date"] = item.get("soi_planned_dispatch_date")
+
+ 
 		order_ledger_dict["sales_order_item"] = item.name
 		order_ledger_dict["customer_notes"] = doc.get("customer_notes")
 		order_ledger_dict["order_type"] = doc.get("order_type")

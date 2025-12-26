@@ -601,15 +601,7 @@ frappe.pages['karigar-workflow'].on_page_load = function (wrapper) {
 		});
 
 		// Add checkbox handlers
-		page.main.find('.select-all-checkbox').on('change', function () {
-			const is_checked = $(this).prop('checked');
-			page.main.find('.row-checkbox').prop('checked', is_checked);
-		});
-
-		page.main.find('.row-checkbox').on('change', function () {
-			const all_checked = page.main.find('.row-checkbox:checked').length === page.main.find('.row-checkbox').length;
-			page.main.find('.select-all-checkbox').prop('checked', all_checked);
-		});
+	page.attach_checkbox_handlers();
 
 		// Add customer link click handler
 		page.main.find('.customer-link').on('click', function (e) {
@@ -852,11 +844,8 @@ frappe.pages['karigar-workflow'].on_page_load = function (wrapper) {
 		page.attach_table_handlers();
 	};
 
-	// Attach table event handlers (separated for reuse)
-	page.attach_table_handlers = function () {
-		const stage_info = page.get_stage_info();
-
-		// Checkbox handlers
+	// Setup checkbox handlers for select-all and row checkboxes
+	page.attach_checkbox_handlers = function () {
 		page.main.find('.select-all-checkbox').on('change', function () {
 			const is_checked = $(this).prop('checked');
 			page.main.find('.row-checkbox').prop('checked', is_checked);
@@ -866,6 +855,14 @@ frappe.pages['karigar-workflow'].on_page_load = function (wrapper) {
 			const all_checked = page.main.find('.row-checkbox:checked').length === page.main.find('.row-checkbox').length;
 			page.main.find('.select-all-checkbox').prop('checked', all_checked);
 		});
+	};
+
+	// Attach table event handlers (separated for reuse)
+	page.attach_table_handlers = function () {
+		const stage_info = page.get_stage_info();
+
+		// Attach checkbox handlers
+		page.attach_checkbox_handlers();
 
 		// Customer link click handler
 		page.main.find('.customer-link').on('click', function (e) {

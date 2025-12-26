@@ -117,48 +117,52 @@ def enrich_order_data(orders):
 	return orders
 
 
-def get_stage_for_order(order):
-	"""Determine the workflow stage key for an order based on its field values."""
-	if order.get("actual_dispatch_date"):
-		return "delivered"
-	if order.get("is_qa_cleared"):  # Check field: 1 = True, 0 = False
-		return "pending_delivery"
-	if order.get("karigar_actual_receive_date"):
-		return "internal_qa"
-	if order.get("karigar_incoming_date"):
-		return "incoming"
-	if order.get("karigar_assignment_date"):
-		return "incoming"
-	if order.get("karigar"):
-		return "assigned"
-	return "unassigned"
+def get_workflow_progression_map():
+	"""
+	Build workflow progression map dynamically from workflow statuses.
+	Returns a dict mapping current status to next status.
+	Assumes sequential workflow progression based on order of statuses.
+	"""
+	statuses = get_workflow_status()
+	workflow_map = {}
+
+	# Build sequential progression map (status[i] -> status[i+1])
+	for i in range(len(statuses) - 1):
+		workflow_map[statuses[i]] = statuses[i + 1]
+
+	return workflow_map
+
+
+def get_reverse_workflow_map():
+	"""
+	Build reverse workflow progression map dynamically from workflow statuses.
+	Returns a dict mapping current status to previous status.
+	"""
+	statuses = get_workflow_status()
+	reverse_map = {}
+
+	# Build reverse progression map (status[i] -> status[i-1])
+	for i in range(1, len(statuses)):
+		reverse_map[statuses[i]] = statuses[i - 1]
+
+	return reverse_map
 
 
 def get_stage_filters(stage_key):
-	"""Get frappe filters for a specific stage."""
+	"""Get frappe filters for a specific stage using order_status field."""
 	filters = {"disabled": ["!=", 1]}  # Check field: 0 = not disabled
 
-	if stage_key == "unassigned":
-		filters["karigar"] = ["in", ["", None]]
-	elif stage_key == "assigned":
-		filters["karigar"] = ["not in", ["", None]]
-		filters["karigar_assignment_date"] = ["in", ["", None]]
-	elif stage_key == "incoming":
-		filters["karigar_assignment_date"] = ["not in", ["", None]]
-		filters["karigar_incoming_date"] = ["in", ["", None]]
-	elif stage_key == "internal_qa":
-		filters["karigar_actual_receive_date"] = ["not in", ["", None]]
-		filters["is_qa_cleared"] = 0  # Check field: not cleared yet
-	elif stage_key == "pending_delivery":
-		filters["is_qa_cleared"] = 1  # Check field: cleared
-		filters["actual_dispatch_date"] = ["in", ["", None]]
-	elif stage_key == "delivered":
-		filters["actual_dispatch_date"] = ["not in", ["", None]]
-	elif stage_key == "on_hold":
-		# Get "On Hold" status dynamically from workflow stages
-		workflow_stages = get_workflow_stages()
-		on_hold_status = next((s["status"] for s in workflow_stages if s["key"] == "on_hold"), "On Hold")
-		filters["order_status"] = on_hold_status
+	# Build stage_to_status mapping dynamically from workflow statuses
+	statuses = get_workflow_status()
+	stage_to_status = {}
+	for status in statuses:
+		# Convert status to key (e.g., "Internal QA" -> "internal_qa")
+		key = status.lower().replace(" ", "_")
+		stage_to_status[key] = status
+
+	# Use order_status field directly instead of deriving from date fields
+	if stage_key in stage_to_status:
+		filters["order_status"] = stage_to_status[stage_key]
 
 	return filters
 
@@ -191,8 +195,10 @@ def get_workflow_data(stage_key=None, search=None, karigar=None, customer=None, 
 				stage["active"] = True
 				break
 		if not stage_key:
-			stage_key = "unassigned"
-			stages[0]["active"] = True
+			# Default to first stage key if no stages have orders
+			stage_key = stages[0]["key"] if stages else "unassigned"
+			if stages:
+				stages[0]["active"] = True
 
 	# Get orders for selected stage
 	filters = get_stage_filters(stage_key)
@@ -226,8 +232,12 @@ def get_workflow_data(stage_key=None, search=None, karigar=None, customer=None, 
 	)
 
 	# Enrich orders
+	# Get default status (first status in workflow)
+	default_status = get_workflow_status()[0] if get_workflow_status() else ""
+
 	for order in orders:
-		order["stage"] = get_stage_for_order(order)
+		# Use order_status directly instead of deriving from fields
+		order["stage"] = order.get("order_status", default_status).lower().replace(" ", "_")
 		order["customer_name"] = order.get("customer_notes", "")[:50] if order.get("customer_notes") else ""
 		order["item_name"] = order.get("item") or ""
 
@@ -257,26 +267,51 @@ def move_to_next_stage(order_name):
 	"""Move an order to the next workflow stage."""
 	order = frappe.get_doc("Order Ledger", order_name)
 	order.check_permission("write")
-	current_stage = get_stage_for_order(order.as_dict())
+	current_status = order.order_status
 
+	# Get workflow progression map dynamically
+	workflow_map = get_workflow_progression_map()
+
+	# Get first status for validation
+	statuses = get_workflow_status()
+	first_status = statuses[0] if statuses else None
+
+	if current_status not in workflow_map:
+		frappe.throw(f"Cannot move from status: {current_status}")
+
+	if current_status == first_status and not order.karigar:
+		frappe.throw("Please assign a Karigar first before moving to next stage")
+
+	# Get next status
+	next_status = workflow_map[current_status]
+	order.order_status = next_status
+
+	# Set appropriate date fields (will be handled by before_save or update_item_status)
 	today = frappe.utils.today()
 
-	if current_stage == "unassigned":
-		frappe.throw("Please assign a Karigar first before moving to next stage")
-	elif current_stage == "assigned":
-		order.karigar_assignment_date = today
-	elif current_stage == "incoming":
-		order.karigar_incoming_date = today
-	elif current_stage == "internal_qa":
+	# Status index for progression logic
+	current_idx = statuses.index(current_status)
+	next_idx = statuses.index(next_status)
+
+	# Handle status-specific field updates based on progression
+	if current_idx == 0 and next_idx == 1:  # Unassigned -> Assigned
+		if not order.karigar_assignment_date:
+			order.karigar_assignment_date = today
+	elif next_idx == 2:  # Moving to Incoming (index 2)
+		if not order.karigar_incoming_date:
+			order.karigar_incoming_date = today
+	elif current_idx == 2 and next_idx == 3:  # Incoming -> Internal QA
+		if not order.karigar_actual_receive_date:
+			order.karigar_actual_receive_date = today
+	elif current_idx == 3 and next_idx == 4:  # Internal QA -> Pending Delivery
 		order.is_qa_cleared = 1
-	elif current_stage == "pending_delivery":
-		order.actual_dispatch_date = today
-	elif current_stage == "delivered":
-		frappe.throw("Order is already delivered")
+	elif current_idx == 4 and next_idx == 5:  # Pending Delivery -> Delivered
+		if not order.actual_dispatch_date:
+			order.actual_dispatch_date = today
 
 	order.save()
 
-	return {"success": True, "new_stage": get_stage_for_order(order.as_dict())}
+	return {"success": True, "new_stage": next_status}
 
 
 @frappe.whitelist()
@@ -284,24 +319,43 @@ def move_to_previous_stage(order_name):
 	"""Move an order to the previous workflow stage."""
 	order = frappe.get_doc("Order Ledger", order_name)
 	order.check_permission("write")
-	current_stage = get_stage_for_order(order.as_dict())
+	current_status = order.order_status
 
-	if current_stage == "unassigned":
-		frappe.throw("Order is already at the first stage")
-	elif current_stage == "assigned":
+	# Get reverse workflow progression map dynamically
+	reverse_workflow_map = get_reverse_workflow_map()
+
+	# Get statuses for index-based logic
+	statuses = get_workflow_status()
+
+	if current_status not in reverse_workflow_map:
+		frappe.throw(f"Cannot move back from status: {current_status}")
+
+	# Get previous status
+	prev_status = reverse_workflow_map[current_status]
+	order.order_status = prev_status
+
+	# Status index for regression logic
+	current_idx = statuses.index(current_status)
+	prev_idx = statuses.index(prev_status)
+
+	# Clear appropriate fields when moving back
+	if current_idx == 1 and prev_idx == 0:  # Assigned -> Unassigned
 		order.karigar = None
-	elif current_stage == "incoming":
 		order.karigar_assignment_date = None
-	elif current_stage == "internal_qa":
+	elif current_idx == 2 and prev_idx == 1:  # Incoming -> Assigned
+		order.karigar_incoming_date = None
+	elif current_idx == 3 and prev_idx == 2:  # Internal QA -> Incoming
 		order.karigar_actual_receive_date = None
-	elif current_stage == "pending_delivery":
+		order.karigar_received_weight = None
+	elif current_idx == 4 and prev_idx == 3:  # Pending Delivery -> Internal QA
 		order.is_qa_cleared = 0
-	elif current_stage == "delivered":
+	elif current_idx == 5 and prev_idx == 4:  # Delivered -> Pending Delivery
 		order.actual_dispatch_date = None
+		order.dispatch_weight = None
 
 	order.save()
 
-	return {"success": True, "new_stage": get_stage_for_order(order.as_dict())}
+	return {"success": True, "new_stage": prev_status}
 
 
 @frappe.whitelist()
@@ -671,29 +725,64 @@ def update_item_status(item_names, new_status, karigar_received_weight=None, rec
 				entry_weight = entry_qty * weight_per_unit
 				setattr(order, weight_field, entry_weight)
 
-			# Special handling for Incoming → Internal QA
-			if current_status == "Incoming" and new_status == "Internal QA":
+			# Get statuses for index-based transition logic
+			statuses = allowed_statuses
+
+			# Get indices for current and new status
+			try:
+				current_idx = statuses.index(current_status) if current_status in statuses else -1
+				new_idx = statuses.index(new_status)
+			except ValueError:
+				# If status not found, skip transition logic
+				current_idx = -1
+				new_idx = -1
+
+			# Auto-assign dates based on status transitions
+			# Use index-based logic to avoid hardcoded status names
+			if current_idx == 0 and new_idx == 1:  # Unassigned -> Assigned
+				if not order.karigar_assignment_date:
+					order.karigar_assignment_date = frappe.utils.today()
+
+			if new_idx == 2:  # Moving to Incoming
+				if not order.karigar_incoming_date:
+					order.karigar_incoming_date = frappe.utils.today()
+
+			if current_idx == 2 and new_idx == 3:  # Incoming -> Internal QA
+				if not order.karigar_actual_receive_date:
+					order.karigar_actual_receive_date = frappe.utils.today()
+
+			if current_idx == 3 and new_idx == 4:  # Internal QA -> Pending Delivery
+				order.is_qa_cleared = 1
+
+			if current_idx == 4 and new_idx == 5:  # Pending Delivery -> Delivered
+				if not order.actual_dispatch_date:
+					order.actual_dispatch_date = frappe.utils.today()
+
+			# Special handling for Incoming → Internal QA (weight and notes)
+			if current_idx == 2 and new_idx == 3:  # Incoming -> Internal QA
 				if karigar_received_weight and not weight_per_unit:
 					order.karigar_received_weight = float(karigar_received_weight)
 				if receive_notes:
 					order.karigar_notes = receive_notes
+				# Allow manual override of receive date if provided
 				if incoming_to_received:
 					order.karigar_actual_receive_date = incoming_to_received
 
 			# Special handling for Internal QA → Incoming (revert)
-			elif current_status == "Internal QA" and new_status == "Incoming":
+			elif current_idx == 3 and new_idx == 2:  # Internal QA -> Incoming
 				order.karigar_received_weight = None
 				order.karigar_actual_receive_date = None
 				if received_to_incoming:
-					revert_note = f"\nReverted from Internal QA at {received_to_incoming}"
+					revert_note = f"\nReverted from {statuses[3]} at {received_to_incoming}"
 					order.karigar_notes = (order.karigar_notes or "") + revert_note
 
-			# Special handling for Pending Delivery → Delivered
-			elif current_status == "Pending Delivery" and new_status == "Delivered":
+			# Special handling for Pending Delivery → Delivered (weight and QA notes)
+			elif current_idx == 4 and new_idx == 5:  # Pending Delivery -> Delivered
 				if dispatch_weight and not weight_per_unit:
 					order.dispatch_weight = float(dispatch_weight)
+				# QA notes are captured when moving to Delivered
 				if dispatch_notes:
-					order.dispatch_notes = dispatch_notes
+					order.qa_notes = dispatch_notes
 
 			# Save the order
 			order.save()
