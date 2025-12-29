@@ -464,7 +464,8 @@ def get_all_order_items(page=1, page_size=10, order_status=None, search=None, cu
 			OrderLedger.order_date,
 			OrderLedger.qty,
 			SalesOrder.customer,
-			Item.item_group
+			Item.item_group,
+			Item.image
 		)
 		.where(OrderLedger.disabled != 1)
 	)
@@ -523,6 +524,11 @@ def get_all_order_items(page=1, page_size=10, order_status=None, search=None, cu
 		order["qty"] = order.get("qty", 1)
 		order["parent"] = order.get("sales_order")
 		order["doctype"] = "Order Ledger"
+		# Map image field with proper path
+		if order.get("image"):
+			order["item_image"] = order["image"]
+		else:
+			order["item_image"] = None
 
 	return {
 		"data": orders,

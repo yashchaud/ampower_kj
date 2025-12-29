@@ -1103,8 +1103,12 @@ frappe.pages['karigar-workflow'].on_page_load = function (wrapper) {
 		const update_dialog_content = function () {
 			const order = orders_array[current_order_index];
 			const stage_info = page.get_stage_info();
-			// TODO: Replace with actual product images from order
-			const images = [];
+			// Get item image from order data - use placeholder if no image
+			console.log('Order data:', order);
+			console.log('Item image:', order.item_image);
+			const placeholder = '/assets/frappe/images/ui-states/list-empty-state.svg';
+			const images = order.item_image ? [order.item_image] : [placeholder];
+			console.log('Images array:', images);
 			let current_image_index = 0;
 
 			// Determine weight type based on transition
