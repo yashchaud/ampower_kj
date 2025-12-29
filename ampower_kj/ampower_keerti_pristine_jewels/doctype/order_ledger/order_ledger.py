@@ -1,6 +1,7 @@
 import frappe
 from frappe.model.document import Document
 
+
 class OrderLedger(Document):
 	def before_save(self):
 		"""Auto-fill qty from Sales Order Item if not set"""
@@ -40,12 +41,7 @@ def get_workflow_stages():
 	for idx, status in enumerate(statuses):
 		# Convert status to key (e.g., "Internal QA" -> "internal_qa")
 		key = status.lower().replace(" ", "_")
-		stages.append({
-			"id": idx + 1,
-			"label": status,
-			"key": key,
-			"status": status
-		})
+		stages.append({"id": idx + 1, "label": status, "key": key, "status": status})
 
 	# Cache for 1 hour
 	frappe.cache().set_value(cache_key, stages, expires_in_sec=3600)
@@ -75,9 +71,7 @@ def enrich_order_data(orders):
 	customer_map = {}
 	if sales_order_ids:
 		sales_orders = frappe.get_all(
-			"Sales Order",
-			filters={"name": ["in", list(sales_order_ids)]},
-			fields=["name", "customer"]
+			"Sales Order", filters={"name": ["in", list(sales_order_ids)]}, fields=["name", "customer"]
 		)
 		customer_map = {so["name"]: so["customer"] for so in sales_orders}
 
@@ -85,9 +79,7 @@ def enrich_order_data(orders):
 	item_map = {}
 	if item_ids:
 		items = frappe.get_all(
-			"Item",
-			filters={"name": ["in", list(item_ids)]},
-			fields=["name", "item_group"]
+			"Item", filters={"name": ["in", list(item_ids)]}, fields=["name", "item_group"]
 		)
 		item_map = {item["name"]: item for item in items}
 
@@ -179,13 +171,15 @@ def get_workflow_data(stage_key=None, search=None, karigar=None, customer=None, 
 	for stage in workflow_stages:
 		filters = get_stage_filters(stage["key"])
 		count = frappe.db.count("Order Ledger", filters=filters)
-		stages.append({
-			"id": stage["id"],
-			"label": stage["label"],
-			"key": stage["key"],
-			"count": count,
-			"active": stage["key"] == stage_key
-		})
+		stages.append(
+			{
+				"id": stage["id"],
+				"label": stage["label"],
+				"key": stage["key"],
+				"count": count,
+				"active": stage["key"] == stage_key,
+			}
+		)
 
 	# Default to first stage with orders if no stage selected
 	if not stage_key:
@@ -225,10 +219,10 @@ def get_workflow_data(stage_key=None, search=None, karigar=None, customer=None, 
 			"karigar_actual_receive_date",
 			"is_qa_cleared",
 			"actual_dispatch_date",
-			"customer_notes"
+			"customer_notes",
 		],
 		order_by="modified desc",
-		limit_page_length=DEFAULT_PAGE_LIMIT
+		limit_page_length=DEFAULT_PAGE_LIMIT,
 	)
 
 	# Enrich orders
@@ -254,11 +248,7 @@ def get_workflow_data(stage_key=None, search=None, karigar=None, customer=None, 
 		"stages": stages,
 		"orders": orders,
 		"active_stage": stage_key,
-		"filters": {
-			"karigars": karigars,
-			"customers": [],
-			"item_groups": []
-		}
+		"filters": {"karigars": karigars, "customers": [], "item_groups": []},
 	}
 
 
@@ -408,7 +398,11 @@ def update_and_move_to_next(order_name, weight=None, load=None):
 	# Then move to next stage
 	result = move_to_next_stage(order_name)
 
-	return {"success": True, "new_stage": result["new_stage"], "message": "Order updated and moved to next stage"}
+	return {
+		"success": True,
+		"new_stage": result["new_stage"],
+		"message": "Order updated and moved to next stage",
+	}
 
 
 @frappe.whitelist()
@@ -428,7 +422,9 @@ def get_workflow_status():
 
 
 @frappe.whitelist()
-def get_all_order_items(page=1, page_size=10, order_status=None, search=None, customer=None, karigar=None, item_group=None):
+def get_all_order_items(
+	page=1, page_size=10, order_status=None, search=None, customer=None, karigar=None, item_group=None
+):
 	"""Fetches Order Ledger entries with server-side pagination and filtering."""
 	from frappe.query_builder import DocType
 	from frappe.query_builder.functions import Count
@@ -446,8 +442,10 @@ def get_all_order_items(page=1, page_size=10, order_status=None, search=None, cu
 	# Build base query with joins
 	query = (
 		frappe.qb.from_(OrderLedger)
-		.left_join(SalesOrder).on(OrderLedger.sales_order == SalesOrder.name)
-		.left_join(Item).on(OrderLedger.item == Item.name)
+		.left_join(SalesOrder)
+		.on(OrderLedger.sales_order == SalesOrder.name)
+		.left_join(Item)
+		.on(OrderLedger.item == Item.name)
 		.select(
 			OrderLedger.name,
 			OrderLedger.sales_order,
@@ -466,6 +464,7 @@ def get_all_order_items(page=1, page_size=10, order_status=None, search=None, cu
 			SalesOrder.customer,
 			Item.item_group,
 			Item.image
+
 		)
 		.where(OrderLedger.disabled != 1)
 	)
@@ -473,8 +472,10 @@ def get_all_order_items(page=1, page_size=10, order_status=None, search=None, cu
 	# Count query
 	count_query = (
 		frappe.qb.from_(OrderLedger)
-		.left_join(SalesOrder).on(OrderLedger.sales_order == SalesOrder.name)
-		.left_join(Item).on(OrderLedger.item == Item.name)
+		.left_join(SalesOrder)
+		.on(OrderLedger.sales_order == SalesOrder.name)
+		.left_join(Item)
+		.on(OrderLedger.item == Item.name)
 		.select(Count("*").as_("total"))
 		.where(OrderLedger.disabled != 1)
 	)
@@ -499,9 +500,9 @@ def get_all_order_items(page=1, page_size=10, order_status=None, search=None, cu
 	# Apply search filter
 	if search:
 		search_condition = (
-			(OrderLedger.name.like(f"%{search}%")) |
-			(OrderLedger.sales_order.like(f"%{search}%")) |
-			(OrderLedger.item.like(f"%{search}%"))
+			(OrderLedger.name.like(f"%{search}%"))
+			| (OrderLedger.sales_order.like(f"%{search}%"))
+			| (OrderLedger.item.like(f"%{search}%"))
 		)
 		query = query.where(search_condition)
 		count_query = count_query.where(search_condition)
@@ -524,7 +525,6 @@ def get_all_order_items(page=1, page_size=10, order_status=None, search=None, cu
 		order["qty"] = order.get("qty", 1)
 		order["parent"] = order.get("sales_order")
 		order["doctype"] = "Order Ledger"
-		# Map image field with proper path
 		if order.get("image"):
 			order["item_image"] = order["image"]
 		else:
@@ -535,7 +535,7 @@ def get_all_order_items(page=1, page_size=10, order_status=None, search=None, cu
 		"total": total_count,
 		"page": page,
 		"page_size": page_size,
-		"total_pages": (total_count + page_size - 1) // page_size  # Ceiling division
+		"total_pages": (total_count + page_size - 1) // page_size,  # Ceiling division
 	}
 
 
@@ -557,8 +557,10 @@ def get_status_counts(customer=None, karigar=None, item_group=None, search=None)
 		# Build count query with joins
 		query = (
 			frappe.qb.from_(OrderLedger)
-			.left_join(SalesOrder).on(OrderLedger.sales_order == SalesOrder.name)
-			.left_join(Item).on(OrderLedger.item == Item.name)
+			.left_join(SalesOrder)
+			.on(OrderLedger.sales_order == SalesOrder.name)
+			.left_join(Item)
+			.on(OrderLedger.item == Item.name)
 			.select(Count("*").as_("total"))
 			.where(OrderLedger.disabled != 1)
 			.where(OrderLedger.order_status == status)
@@ -576,9 +578,9 @@ def get_status_counts(customer=None, karigar=None, item_group=None, search=None)
 
 		if search:
 			search_condition = (
-				(OrderLedger.name.like(f"%{search}%")) |
-				(OrderLedger.sales_order.like(f"%{search}%")) |
-				(OrderLedger.item.like(f"%{search}%"))
+				(OrderLedger.name.like(f"%{search}%"))
+				| (OrderLedger.sales_order.like(f"%{search}%"))
+				| (OrderLedger.item.like(f"%{search}%"))
 			)
 			query = query.where(search_condition)
 
@@ -609,7 +611,8 @@ def get_filter_options():
 	# Get unique customers (from all stages)
 	customer_query = (
 		frappe.qb.from_(OrderLedger)
-		.left_join(SalesOrder).on(OrderLedger.sales_order == SalesOrder.name)
+		.left_join(SalesOrder)
+		.on(OrderLedger.sales_order == SalesOrder.name)
 		.select(SalesOrder.customer)
 		.distinct()
 		.where(base_condition)
@@ -634,7 +637,8 @@ def get_filter_options():
 	# Get unique item groups (from all stages)
 	item_group_query = (
 		frappe.qb.from_(OrderLedger)
-		.left_join(Item).on(OrderLedger.item == Item.name)
+		.left_join(Item)
+		.on(OrderLedger.item == Item.name)
 		.select(Item.item_group)
 		.distinct()
 		.where(base_condition)
@@ -644,11 +648,7 @@ def get_filter_options():
 	)
 	item_groups = [row[0] for row in item_group_query.run() if row[0]]
 
-	return {
-		"customers": customers,
-		"karigars": karigars,
-		"item_groups": item_groups
-	}
+	return {"customers": customers, "karigars": karigars, "item_groups": item_groups}
 
 
 @frappe.whitelist()
@@ -676,10 +676,10 @@ def get_order_items_by_karigar(karigar, customer=None, item_group=None):
 			"karigar_received_weight",
 			"karigar_notes",
 			"order_date",
-			"qty"
+			"qty",
 		],
 		order_by="modified desc",
-		limit_page_length=KARIGAR_PAGE_LIMIT
+		limit_page_length=KARIGAR_PAGE_LIMIT,
 	)
 
 	# Enrich data with linked records using bulk fetching (solves N+1 problem)
@@ -687,7 +687,18 @@ def get_order_items_by_karigar(karigar, customer=None, item_group=None):
 
 
 @frappe.whitelist()
-def update_item_status(item_names, new_status, karigar_received_weight=None, receive_notes=None, incoming_to_received=None, received_to_incoming=None, dispatch_weight=None, dispatch_notes=None, weight_per_unit=None, weight_field=None):
+def update_item_status(
+	item_names,
+	new_status,
+	karigar_received_weight=None,
+	receive_notes=None,
+	incoming_to_received=None,
+	received_to_incoming=None,
+	dispatch_weight=None,
+	dispatch_notes=None,
+	weight_per_unit=None,
+	weight_field=None,
+):
 	"""Updates order_status for one or more Order Ledger entries."""
 	# Parse item_names if it's a JSON string
 	if isinstance(item_names, str):
@@ -801,12 +812,8 @@ def update_item_status(item_names, new_status, karigar_received_weight=None, rec
 		# Emit namespaced realtime progress event
 		frappe.publish_realtime(
 			"ampower_kj:karigar_batch_progress",
-			{
-				"data_import": "karigar-dashboard",
-				"current": idx + 1,
-				"total": total
-			},
-			user=frappe.session.user
+			{"data_import": "karigar-dashboard", "current": idx + 1, "total": total},
+			user=frappe.session.user,
 		)
 
 	return results
@@ -875,5 +882,5 @@ def split_order_item(item_name, split_qty):
 		"new_entries": [first_entry.name, second_entry.name],
 		"first_entry": {"name": first_entry.name, "qty": split_qty},
 		"second_entry": {"name": second_entry.name, "qty": remaining_qty},
-		"message": f"Successfully split {item_name} ({total_qty} qty) into {split_qty} and {remaining_qty}"
+		"message": f"Successfully split {item_name} ({total_qty} qty) into {split_qty} and {remaining_qty}",
 	}
