@@ -39,18 +39,13 @@ def execute(doc, method=None):
 				value = order_ledger_copy.get(fieldname)
 				if value is not None:
 					order_ledger_dict[fieldname] = value
-
-
 		# Override ONLY fields that need different values or come from parent Sales Order
 		order_ledger_dict["sales_order"] = doc.name
-	 
- 
 		order_ledger_dict["sales_order_item"] = item.name
 		order_ledger_dict["customer_notes"] = doc.get("customer_notes")
 		order_ledger_dict["order_type"] = doc.get("order_type")
 		order_ledger_dict["order_date"] = doc.transaction_date
-		# Field mappings where source/target field names differ
- 
+
 		order_ledger_dict["order_status"] = "Unassigned"
 
 		order_ledger_dict["item"] = item.item_code
