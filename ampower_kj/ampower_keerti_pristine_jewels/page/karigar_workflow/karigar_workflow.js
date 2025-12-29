@@ -480,6 +480,7 @@ frappe.pages["karigar-workflow"].on_page_load = function (wrapper) {
 								</th>
 								<th style="width: 80px;">S. No.</th>
 								<th>Customer</th>
+								<th>Karigar</th>
 								<th>Item Details</th>
 								<th style="width: 80px;">Qty</th>
 								<th style="width: 120px;">Status</th>
@@ -777,6 +778,7 @@ frappe.pages["karigar-workflow"].on_page_load = function (wrapper) {
 
 		page.orders_data.forEach((order, idx) => {
 			const customer = order.customer || "N/A";
+			const karigar = order.karigar || "N/A";
 			const item_details = order.item_code || "N/A";
 			const qty = order.qty || 0;
 			const status = order.order_status || "N/A";
@@ -791,6 +793,7 @@ frappe.pages["karigar-workflow"].on_page_load = function (wrapper) {
 					</td>
 					<td>${serial_number}</td>
 					<td><a href="#" class="customer-link" data-order-index="${idx}" style="color: #2490EF; cursor: pointer;">${customer}</a></td>
+					<td>${karigar}</td>
 					<td>${item_details}</td>
 					<td>${qty}</td>
 					<td>
@@ -804,7 +807,7 @@ frappe.pages["karigar-workflow"].on_page_load = function (wrapper) {
 
 		return (
 			rows_html ||
-			'<tr><td colspan="8" style="text-align: center;">No orders found</td></tr>'
+			'<tr><td colspan="9" style="text-align: center;">No orders found</td></tr>'
 		);
 	};
 
@@ -1369,6 +1372,11 @@ frappe.pages["karigar-workflow"].on_page_load = function (wrapper) {
 		// weight_type can be 'received' (Incoming → Internal QA) or 'dispatch' (Pending Delivery → Delivered)
 		weight_type = weight_type || "";
 
+		const item_weight = order.item_weight || 0;
+		const item_weight_display = item_weight ? parseFloat(item_weight).toFixed(2) : "-";
+		const karigar_received_weight = order.karigar_received_weight || 0;
+		const karigar_received_weight_display = karigar_received_weight ? parseFloat(karigar_received_weight).toFixed(2) : "-";
+
 		const weight_config = {
 			received: {
 				label: "Received Weight*",
@@ -1385,6 +1393,34 @@ frappe.pages["karigar-workflow"].on_page_load = function (wrapper) {
 		};
 
 		const config = weight_config[weight_type];
+
+		// Build weight info section based on transition type
+		let weight_info_html = "";
+		if (weight_type === "received") {
+			// Incoming → Internal QA: Show item weight only
+			weight_info_html = `
+				<div class="weight-info-section" style="background: #f0f9ff; border-radius: 6px; padding: 12px; margin-bottom: 16px;">
+					<div class="weight-info-item" style="display: flex; justify-content: space-between; align-items: center;">
+						<span style="color: #64748b; font-size: 13px;">Item Weight</span>
+						<span style="color: #1a202c; font-size: 14px; font-weight: 500;">${item_weight_display}</span>
+					</div>
+				</div>
+			`;
+		} else if (weight_type === "dispatch") {
+			// Pending Delivery → Delivered: Show item weight and karigar received weight
+			weight_info_html = `
+				<div class="weight-info-section" style="background: #f0f9ff; border-radius: 6px; padding: 12px; margin-bottom: 16px;">
+					<div class="weight-info-item" style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 8px;">
+						<span style="color: #64748b; font-size: 13px;">Item Weight</span>
+						<span style="color: #1a202c; font-size: 14px; font-weight: 500;">${item_weight_display}</span>
+					</div>
+					<div class="weight-info-item" style="display: flex; justify-content: space-between; align-items: center;">
+						<span style="color: #64748b; font-size: 13px;">Karigar Received Weight</span>
+						<span style="color: #1a202c; font-size: 14px; font-weight: 500;">${karigar_received_weight_display}</span>
+					</div>
+				</div>
+			`;
+		}
 
 		// Only show image section if images exist
 		const image_html =
@@ -1437,6 +1473,8 @@ frappe.pages["karigar-workflow"].on_page_load = function (wrapper) {
                 </svg>
                 Fill Details
             </div>
+
+            ${weight_info_html}
 
             <div class="">
                 <div class="form-group">
