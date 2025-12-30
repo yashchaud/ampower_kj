@@ -48,6 +48,22 @@ frappe.pages["karigar-workflow"].on_page_load = function (wrapper) {
 		};
 	};
 
+	// Helper function to format item display as {itemcode}-{item-name}
+	page.format_item_display = function (order) {
+		const item_code = order.item_code || "";
+		const item_name = order.item_name || "";
+
+		if (!item_code) {
+			return "N/A";
+		}
+
+		if (!item_name) {
+			return item_code;
+		}
+
+		return `${item_code}-${item_name}`;
+	};
+
 	// Helper function to update order status (reduces API call duplication)
 	page.update_order_status = function (item_names, new_status, extra_args, callback) {
 		const args = Object.assign(
@@ -779,7 +795,7 @@ frappe.pages["karigar-workflow"].on_page_load = function (wrapper) {
 		page.orders_data.forEach((order, idx) => {
 			const customer = order.customer || "N/A";
 			const karigar = order.karigar || "N/A";
-			const item_details = order.item_code || "N/A";
+			const item_details = page.format_item_display(order);
 			const qty = order.qty || 0;
 			const status = order.order_status || "N/A";
 			const sales_order = order.sales_order || "N/A";
@@ -1174,12 +1190,12 @@ frappe.pages["karigar-workflow"].on_page_load = function (wrapper) {
 					</div>
 
 					<div style="margin-bottom: 0;">
-						<div style="color: #64748b; font-size: 13px; margin-bottom: 4px;">Item Code</div>
+						<div style="color: #64748b; font-size: 13px; margin-bottom: 4px;">Item</div>
 						<div style="color: #1a202c; font-size: 15px; font-weight: 500;">
 							<a href="/app/item/${
 								order.item_code || ""
 							}" target="_blank" style="color: #2490EF; text-decoration: none;">${
-			order.item_code || "N/A"
+			page.format_item_display(order)
 		}</a>
 						</div>
 					</div>
@@ -1528,8 +1544,8 @@ frappe.pages["karigar-workflow"].on_page_load = function (wrapper) {
                     <span class="value">${order.item_group || "N/A"}</span>
                 </div>
                 <div class="info-item">
-                    <span class="label">Item Code :</span>
-                    <span class="value">${order.item_code || "N/A"}</span>
+                    <span class="label">Item :</span>
+                    <span class="value">${page.format_item_display(order)}</span>
                 </div>
             </div>
         </div>
@@ -1770,7 +1786,7 @@ frappe.pages["karigar-workflow"].on_page_load = function (wrapper) {
 			dialog.$wrapper
 				.find(".split-item-group-value")
 				.text(selected_order.item_group || "N/A");
-			dialog.$wrapper.find(".split-item-code-value").text(selected_order.item_code || "N/A");
+			dialog.$wrapper.find(".split-item-code-value").text(page.format_item_display(selected_order));
 			dialog.$wrapper.find(".split-total-qty-value").text(total_qty);
 
 			// Update split qty input with saved value and set max attribute

@@ -79,7 +79,7 @@ def enrich_order_data(orders):
 	item_map = {}
 	if item_ids:
 		items = frappe.get_all(
-			"Item", filters={"name": ["in", list(item_ids)]}, fields=["name", "item_group"]
+			"Item", filters={"name": ["in", list(item_ids)]}, fields=["name", "item_name", "item_group"]
 		)
 		item_map = {item["name"]: item for item in items}
 
@@ -94,9 +94,11 @@ def enrich_order_data(orders):
 		if item_code and item_code in item_map:
 			item_data = item_map[item_code]
 			order["item_code"] = item_code
+			order["item_name"] = item_data.get("item_name", "")
 			order["item_group"] = item_data.get("item_group", "")
 		else:
 			order["item_code"] = item_code or ""
+			order["item_name"] = ""
 			order["item_group"] = ""
 
 		# Map fields for frontend compatibility
