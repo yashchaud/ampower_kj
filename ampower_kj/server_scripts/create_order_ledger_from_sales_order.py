@@ -54,7 +54,7 @@ def create_order_ledger_on_submit(doc, method=None):
 		order_ledger_dict["order_status"] = "Unassigned"
 
 		order_ledger_dict["item"] = item.item_code
-		order_ledger_dict["order_weight"] = item.get("weight_per_unit")
+		order_ledger_dict["order_weight"] = item.get("soi_order_weight") or item.get("weight_per_unit")
 		order_ledger_dict["planned_dispatch_date"] = item.get("delivery_date")
 
 		# Create and insert
