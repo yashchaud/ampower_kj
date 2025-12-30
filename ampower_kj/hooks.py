@@ -26,11 +26,10 @@ app_license = "unlicense"
 
 # include js, css files in header of desk.html
 app_include_css = [
-    "/assets/ampower_kj/css/ampower_kj.css",
- 
+	"/assets/ampower_kj/css/ampower_kj.css",
 ]
 # app_include_js = [
-  
+
 #  ]
 
 # include js, css files in header of web template
@@ -144,10 +143,10 @@ app_include_css = [
 
 doc_events = {
 	"Sales Order": {
-		"after_insert": "ampower_kj.server_scripts.create_order_ledger_from_sales_order.execute"
+		"on_submit": "ampower_kj.server_scripts.create_order_ledger_from_sales_order.create_order_ledger_on_submit",
+		"on_cancel": "ampower_kj.server_scripts.create_order_ledger_from_sales_order.disable_order_ledger_on_cancel"
 	}
 }
-
 # Scheduled Tasks
 # ---------------
 
@@ -249,4 +248,11 @@ doc_events = {
 # --------
 # Export fixtures to version control (if needed)
 # fixtures = []
-
+fixtures =  [
+				{"doctype": "Custom Field", "filters": [["Custom Field", "module", "in", ("AmPower Keerti Pristine Jewels")]]},
+				{"doctype": "Property Setter", "filters": [["Property Setter", "module", "in", ("AmPower Keerti Pristine Jewels")]]},
+				{"doctype": "Client Script", "filters": [["Client Script", "module", "in", ("AmPower Keerti Pristine Jewels")]]},
+				{"doctype": "Server Script", "filters": [["Server Script", "module", "in", ("AmPower Keerti Pristine Jewels")]]},
+				{"doctype": "Supplier Group", "filters": [["Supplier Group", "supplier_group_name", "=", "Karigar"]]},
+				{"doctype": "Item Group", "filters": [["Item Group", "item_group_name", "=", "Die"]]},
+			]

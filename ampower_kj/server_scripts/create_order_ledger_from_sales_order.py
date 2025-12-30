@@ -1,23 +1,30 @@
 """
 Server Script: Create Order Ledger from Sales Order
-Event: After Insert on Sales Order
-Description: Automatically creates Order Ledger entries for each Sales Order item
+Events: on_submit, on_cancel on Sales Order
+Description:
+  - on_submit: Creates Order Ledger entries when Sales Order is submitted
+  - on_cancel: Disables Order Ledger entries when Sales Order is cancelled
 Relationship: 1 Sales Order Item → 1 Order Ledger entry (with same qty)
+
+Note: These hooks are additive and do not override any existing Sales Order doc events.
+Frappe's doc_events system appends handlers rather than replacing them.
 """
 
 import frappe
 
 
-def execute(doc, method=None):
+def create_order_ledger_on_submit(doc, method=None):
 	"""
-	Create Order Ledger entries from Sales Order items.
+	Create Order Ledger entries from Sales Order items on submit.
 	Creates one Order Ledger entry per Sales Order Item (1:1 mapping).
-	Uses frappe.copy_doc to copy all compatible fields from Sales Order Item.
 
 	Args:
 		doc: Sales Order document
-		method: Event method (not used, required by hook signature)
+		method: Event method name (passed by Frappe, e.g., 'on_submit')
 	"""
+	if doc.docstatus != 1:
+		return
+
 	for item in doc.items:
 		existing = frappe.db.exists("Order Ledger", {"sales_order_item": item.name})
 		if existing:
@@ -55,3 +62,22 @@ def execute(doc, method=None):
 		# Create and insert
 		order_ledger = frappe.get_doc(order_ledger_dict)
 		order_ledger.insert(ignore_permissions=True)
+
+
+def disable_order_ledger_on_cancel(doc, method=None):
+	"""
+	Disable all Order Ledger entries linked to a cancelled Sales Order.
+	Sets disabled=1 for all Order Ledger entries referencing this Sales Order.
+
+	Args:
+		doc: Sales Order document
+		method: Event method name (passed by Frappe, e.g., 'on_cancel')
+	"""
+	order_ledgers = frappe.get_all(
+		"Order Ledger",
+		filters={"sales_order": doc.name},
+		pluck="name"
+	)
+
+	for ledger_name in order_ledgers:
+		frappe.db.set_value("Order Ledger", ledger_name, "disabled", 1)
