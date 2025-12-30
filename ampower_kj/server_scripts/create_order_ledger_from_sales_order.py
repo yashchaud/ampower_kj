@@ -22,9 +22,7 @@ def create_order_ledger_on_submit(doc, method=None):
 		doc: Sales Order document
 		method: Event method name (passed by Frappe, e.g., 'on_submit')
 	"""
-	if doc.docstatus != 1:
-		return
-
+	
 	for item in doc.items:
 		existing = frappe.db.exists("Order Ledger", {"sales_order_item": item.name})
 		if existing:
