@@ -2263,7 +2263,7 @@ body{
 	.karigar-bulk-entry-modal .modal-footer,
 	.karigar-split-modal .modal-footer {
 		flex-direction: column;
-		gap: 12px;
+		gap: 0;
 		padding: 12px 16px;
 	}
 
@@ -2274,6 +2274,13 @@ body{
 		width: 100%;
 		padding: 10px 16px !important;
 		font-size: 14px !important;
+	}
+
+	.karigar-single-entry-modal .modal-footer .btn-secondary,
+	.karigar-view-modal .modal-footer .btn-secondary,
+	.karigar-bulk-entry-modal .modal-footer .btn-secondary,
+	.karigar-split-modal .modal-footer .btn-secondary {
+		margin-bottom: 12px;
 	}
 }
 
