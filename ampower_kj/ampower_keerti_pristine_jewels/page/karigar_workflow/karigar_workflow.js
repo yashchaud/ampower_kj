@@ -51,7 +51,7 @@ frappe.pages["karigar-workflow"].on_page_load = function (wrapper) {
 	// Helper function to format item display as {itemcode}-{item-name}
 	page.format_item_display = function (order) {
 		const item_code = order.item_code || "";
-		const item_name = order.item_name || "";
+		const item_name = order.item || "";
 
 		if (!item_code) {
 			return "N/A";
@@ -60,7 +60,7 @@ frappe.pages["karigar-workflow"].on_page_load = function (wrapper) {
 		if (!item_name) {
 			return item_code;
 		}
-
+		console.log(item_code, item_name);
 		return `${item_code}-${item_name}`;
 	};
 
