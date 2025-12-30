@@ -1196,9 +1196,9 @@ frappe.pages["karigar-workflow"].on_page_load = function (wrapper) {
 		const update_dialog_content = function () {
 			const order = orders_array[current_order_index];
 			const stage_info = page.get_stage_info();
-			// TODO: Replace with actual product images from order
 			const placeholder = '/assets/frappe/images/ui-states/list-empty-state.svg';
-			const images = order.item_image ? [order.item_image] : [placeholder];
+			// Use images array from backend (includes Sales Order Item image + Item master image)
+			const images = order.images && order.images.length > 0 ? order.images : [placeholder];
 
 			let current_image_index = 0;
 

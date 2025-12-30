@@ -530,13 +530,15 @@ def get_all_order_items(
 		order["qty"] = order.get("qty", 1)
 		order["parent"] = order.get("sales_order")
 		order["doctype"] = "Order Ledger"
-		# Prefer Sales Order Item image, fallback to Item master image
+		# Build images array with all available images (Sales Order Item image + Item master image)
+		images = []
 		if order.get("custom_sales_order_image"):
-			order["item_image"] = order["custom_sales_order_image"]
-		elif order.get("image"):
-			order["item_image"] = order["image"]
-		else:
-			order["item_image"] = None
+			images.append(order["custom_sales_order_image"])
+		if order.get("image"):
+			images.append(order["image"])
+		order["images"] = images
+		# Keep item_image for backward compatibility (first available image)
+		order["item_image"] = images[0] if images else None
 
 	return {
 		"data": orders,
