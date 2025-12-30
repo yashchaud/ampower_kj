@@ -705,7 +705,7 @@ body{
 	align-items: center;
 	justify-content: center;
 	cursor: pointer;
-	transition: all 0.2s;
+	transition: all 0.2s ease;
 	box-shadow: 0 2px 8px rgba(0, 0, 0, 0.15);
 	color: #2d3748;
 	z-index: 10;
@@ -715,6 +715,11 @@ body{
 	background-color: white;
 	box-shadow: 0 4px 12px rgba(0, 0, 0, 0.2);
 	color: #2490ef;
+	transform: translateY(-50%) scale(1.1);
+}
+
+.image-nav-btn:active:not(:disabled) {
+	transform: translateY(-50%) scale(0.95);
 }
 
 .image-nav-btn:disabled {
@@ -724,7 +729,7 @@ body{
 
 .image-nav-btn:focus {
 	outline: none;
-	box-shadow: var(--btn-focus-shadow-outline);
+	box-shadow: 0 0 0 3px rgba(36, 144, 239, 0.15);
 }
 
 .prev-image-btn {
@@ -733,6 +738,55 @@ body{
 
 .next-image-btn {
 	right: 12px;
+}
+
+/* Responsive navigation buttons */
+@media (max-width: 992px) {
+	.image-nav-btn {
+		width: 36px;
+		height: 36px;
+	}
+
+	.image-nav-btn svg {
+		width: 18px;
+		height: 18px;
+	}
+}
+
+@media (max-width: 768px) {
+	.image-nav-btn {
+		width: 32px;
+		height: 32px;
+		background-color: rgba(255, 255, 255, 0.98);
+	}
+
+	.image-nav-btn svg {
+		width: 16px;
+		height: 16px;
+	}
+
+	.prev-image-btn {
+		left: 8px;
+	}
+
+	.next-image-btn {
+		right: 8px;
+	}
+}
+
+@media (max-width: 576px) {
+	.image-nav-btn {
+		width: 30px;
+		height: 30px;
+	}
+
+	.prev-image-btn {
+		left: 6px;
+	}
+
+	.next-image-btn {
+		right: 6px;
+	}
 }
 
 /* Image Counter Badge */
@@ -1262,24 +1316,90 @@ body{
 
 .image-pagination {
     position: absolute;
-    bottom: 10px;
+    bottom: 12px;
     left: 0;
     right: 0;
     display: flex;
     justify-content: center;
-    gap: 5px;
+    align-items: center;
+    gap: 8px;
+    padding: 8px;
+    background: rgba(0, 0, 0, 0.3);
+    backdrop-filter: blur(4px);
+    border-radius: 20px;
+    margin: 0 auto;
+    width: fit-content;
+    z-index: 5;
 }
 
 .dot {
-    width: 10px;
-    height: 10px;
+    width: 12px;
+    height: 12px;
     border-radius: 50%;
-    background-color: transparent;
-    border: 1px solid #007bff;
+    background-color: rgba(255, 255, 255, 0.5);
+    border: 2px solid rgba(255, 255, 255, 0.8);
+    transition: all 0.3s ease;
+    cursor: pointer;
+    box-shadow: 0 2px 4px rgba(0, 0, 0, 0.2);
+}
+
+.dot:hover {
+    background-color: rgba(255, 255, 255, 0.8);
+    border-color: #ffffff;
+    transform: scale(1.3);
+    box-shadow: 0 2px 6px rgba(0, 0, 0, 0.3);
 }
 
 .dot.active {
-    background-color: #007bff;
+    background-color: #2490ef;
+    border-color: #ffffff;
+    border-width: 2px;
+    width: 14px;
+    height: 14px;
+    box-shadow: 0 0 8px rgba(36, 144, 239, 0.6);
+}
+
+.dot.active:hover {
+    background-color: #1a7fcf;
+    transform: scale(1.2);
+}
+
+/* Responsive dots */
+@media (max-width: 768px) {
+    .image-pagination {
+        gap: 6px;
+        padding: 6px;
+        bottom: 10px;
+    }
+
+    .dot {
+        width: 10px;
+        height: 10px;
+        border-width: 1.5px;
+    }
+
+    .dot.active {
+        width: 12px;
+        height: 12px;
+    }
+}
+
+@media (max-width: 576px) {
+    .image-pagination {
+        gap: 5px;
+        padding: 5px;
+        bottom: 8px;
+    }
+
+    .dot {
+        width: 8px;
+        height: 8px;
+    }
+
+    .dot.active {
+        width: 10px;
+        height: 10px;
+    }
 }
 
 .image-counter-text {

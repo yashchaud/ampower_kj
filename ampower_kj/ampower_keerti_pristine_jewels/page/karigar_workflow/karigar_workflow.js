@@ -1379,13 +1379,13 @@ frappe.pages["karigar-workflow"].on_page_load = function (wrapper) {
 
 		const weight_config = {
 			received: {
-				label: "Received Weight*",
+				label: "Received Weight (g)*",
 				field_name: "weight-input",
 				value: order.karigar_received_weight || 0.0,
 				notes_value: order.karigar_notes || "",
 			},
 			dispatch: {
-				label: "Dispatch Weight*",
+				label: "Dispatch Weight (g)*",
 				field_name: "weight-input",
 				value: order.dispatch_weight || 0.0,
 				notes_value: order.qa_notes || "",
@@ -1401,8 +1401,8 @@ frappe.pages["karigar-workflow"].on_page_load = function (wrapper) {
 			weight_info_html = `
 				<div class="weight-info-section" style="background: #f0f9ff; border-radius: 6px; padding: 12px; margin-bottom: 16px;">
 					<div class="weight-info-item" style="display: flex; justify-content: space-between; align-items: center;">
-						<span style="color: #64748b; font-size: 13px;">Item Weight</span>
-						<span style="color: #1a202c; font-size: 14px; font-weight: 500;">${item_weight_display}</span>
+						<span style="color: #64748b; font-size: 13px;">Item Weight (g)</span>
+						<span style="color: #1a202c; font-size: 14px; font-weight: 500;">${item_weight_display} g</span>
 					</div>
 				</div>
 			`;
@@ -1411,12 +1411,12 @@ frappe.pages["karigar-workflow"].on_page_load = function (wrapper) {
 			weight_info_html = `
 				<div class="weight-info-section" style="background: #f0f9ff; border-radius: 6px; padding: 12px; margin-bottom: 16px;">
 					<div class="weight-info-item" style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 8px;">
-						<span style="color: #64748b; font-size: 13px;">Item Weight</span>
-						<span style="color: #1a202c; font-size: 14px; font-weight: 500;">${item_weight_display}</span>
+						<span style="color: #64748b; font-size: 13px;">Item Weight (g)</span>
+						<span style="color: #1a202c; font-size: 14px; font-weight: 500;">${item_weight_display} g</span>
 					</div>
 					<div class="weight-info-item" style="display: flex; justify-content: space-between; align-items: center;">
-						<span style="color: #64748b; font-size: 13px;">Karigar Received Weight</span>
-						<span style="color: #1a202c; font-size: 14px; font-weight: 500;">${karigar_received_weight_display}</span>
+						<span style="color: #64748b; font-size: 13px;">Karigar Received Weight (g)</span>
+						<span style="color: #1a202c; font-size: 14px; font-weight: 500;">${karigar_received_weight_display} g</span>
 					</div>
 				</div>
 			`;
@@ -1427,14 +1427,30 @@ frappe.pages["karigar-workflow"].on_page_load = function (wrapper) {
 			images && images.length > 0
 				? `
         <div class="image-column">
-            <div class="image-frame">
-                <img src="${images[current_index]}" alt="Product" class="product-img">
+            <div class="image-frame" style="position: relative;">
+                <img src="${images[current_index]}" alt="Product" class="product-img main-product-image" data-current-index="${current_index}">
+
+                ${images.length > 1 ? `
+                    <!-- Left Navigation Arrow -->
+                    <button class="image-nav-btn prev-image-btn" style="position: absolute; left: 10px; top: 50%; transform: translateY(-50%); background: rgba(255, 255, 255, 0.9); border: 1px solid #ddd; border-radius: 50%; width: 40px; height: 40px; display: flex; align-items: center; justify-content: center; cursor: pointer; box-shadow: 0 2px 8px rgba(0,0,0,0.15); transition: all 0.2s; z-index: 10;" ${current_index === 0 ? 'disabled' : ''}>
+                        <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                            <polyline points="15 18 9 12 15 6"></polyline>
+                        </svg>
+                    </button>
+
+                    <!-- Right Navigation Arrow -->
+                    <button class="image-nav-btn next-image-btn" style="position: absolute; right: 10px; top: 50%; transform: translateY(-50%); background: rgba(255, 255, 255, 0.9); border: 1px solid #ddd; border-radius: 50%; width: 40px; height: 40px; display: flex; align-items: center; justify-content: center; cursor: pointer; box-shadow: 0 2px 8px rgba(0,0,0,0.15); transition: all 0.2s; z-index: 10;" ${current_index === images.length - 1 ? 'disabled' : ''}>
+                        <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                            <polyline points="9 18 15 12 9 6"></polyline>
+                        </svg>
+                    </button>
+                ` : ''}
 
                 <div class="image-pagination">
                     ${images
 						.map(
 							(_, idx) => `
-                        <span class="dot ${idx === current_index ? "active" : ""}"></span>
+                        <span class="dot ${idx === current_index ? "active" : ""}" data-index="${idx}" style="cursor: pointer;"></span>
                     `
 						)
 						.join("")}
@@ -1538,29 +1554,75 @@ frappe.pages["karigar-workflow"].on_page_load = function (wrapper) {
 				.attr("src", images[newIndex])
 				.data("current-index", newIndex);
 
-			// Update counter in header
-			$wrapper.find(".current-image").text(`${newIndex + 1}`);
+			// Update counter text below image
+			$wrapper.find(".image-counter-text").text(`Image ${newIndex + 1} of ${images.length}`);
 
-			// Update badge
-			$wrapper.find(".image-count-badge").text(`${newIndex + 1}/${images.length}`);
+			// Update pagination dots
+			$wrapper.find(".dot").removeClass("active");
+			$wrapper.find(`.dot[data-index="${newIndex}"]`).addClass("active");
 
 			// Update button states
 			$wrapper.find(".prev-image-btn").prop("disabled", newIndex === 0);
 			$wrapper.find(".next-image-btn").prop("disabled", newIndex === images.length - 1);
+
+			// Update button opacity for visual feedback
+			if (newIndex === 0) {
+				$wrapper.find(".prev-image-btn").css("opacity", "0.5");
+			} else {
+				$wrapper.find(".prev-image-btn").css("opacity", "1");
+			}
+
+			if (newIndex === images.length - 1) {
+				$wrapper.find(".next-image-btn").css("opacity", "0.5");
+			} else {
+				$wrapper.find(".next-image-btn").css("opacity", "1");
+			}
 		};
 
 		// Previous image button
-		$wrapper.find(".prev-image-btn").on("click", function () {
+		$wrapper.find(".prev-image-btn").on("click", function (e) {
+			e.preventDefault();
+			e.stopPropagation();
 			if (current_index > 0) {
 				updateImageDisplay(current_index - 1);
 			}
 		});
 
 		// Next image button
-		$wrapper.find(".next-image-btn").on("click", function () {
+		$wrapper.find(".next-image-btn").on("click", function (e) {
+			e.preventDefault();
+			e.stopPropagation();
 			if (current_index < images.length - 1) {
 				updateImageDisplay(current_index + 1);
 			}
+		});
+
+		// Dot pagination click handler
+		$wrapper.find(".dot").on("click", function (e) {
+			e.preventDefault();
+			e.stopPropagation();
+			const clickedIndex = parseInt($(this).data("index"));
+			if (clickedIndex !== current_index) {
+				updateImageDisplay(clickedIndex);
+			}
+		});
+
+		// Keyboard navigation (left/right arrows)
+		$(document).off("keydown.image-nav").on("keydown.image-nav", function (e) {
+			if (!dialog.$wrapper.is(":visible")) return;
+
+			if (e.key === "ArrowLeft" && current_index > 0) {
+				e.preventDefault();
+				updateImageDisplay(current_index - 1);
+			} else if (e.key === "ArrowRight" && current_index < images.length - 1) {
+				e.preventDefault();
+				updateImageDisplay(current_index + 1);
+			}
+		});
+
+		// Clean up keyboard listener when dialog closes
+		dialog.$wrapper.on("hidden.bs.modal", function () {
+			$(document).off("keydown.image-nav");
 		});
 	};
 
@@ -1674,8 +1736,8 @@ frappe.pages["karigar-workflow"].on_page_load = function (wrapper) {
 				</div>
 				<div class="bulk-form-fields">
 					<div class="form-group">
-						<label class="bulk-weight-label">Weight*</label>
-						<input type="number" step="0.01" class="form-control bulk-weight-input" value="0.0" placeholder="0.0">
+						<label class="bulk-weight-label">Weight (g)*</label>
+						<input type="number" step="0.01" class="form-control bulk-weight-input" value="0.0" placeholder="0.0 grams">
 					</div>
 				</div>
 			</div>

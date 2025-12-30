@@ -439,6 +439,9 @@ def get_all_order_items(
 	SalesOrder = DocType("Sales Order")
 	Item = DocType("Item")
 
+	# Define Sales Order Item DocType for joining
+	SalesOrderItem = DocType("Sales Order Item")
+
 	# Build base query with joins
 	query = (
 		frappe.qb.from_(OrderLedger)
@@ -446,6 +449,8 @@ def get_all_order_items(
 		.on(OrderLedger.sales_order == SalesOrder.name)
 		.left_join(Item)
 		.on(OrderLedger.item == Item.name)
+		.left_join(SalesOrderItem)
+		.on(OrderLedger.sales_order_item == SalesOrderItem.name)
 		.select(
 			OrderLedger.name,
 			OrderLedger.sales_order,
@@ -463,8 +468,8 @@ def get_all_order_items(
 			OrderLedger.qty,
 			SalesOrder.customer,
 			Item.item_group,
-			Item.image
-
+			Item.image,
+			SalesOrderItem.custom_sales_order_image,
 		)
 		.where(OrderLedger.disabled != 1)
 	)
@@ -525,7 +530,10 @@ def get_all_order_items(
 		order["qty"] = order.get("qty", 1)
 		order["parent"] = order.get("sales_order")
 		order["doctype"] = "Order Ledger"
-		if order.get("image"):
+		# Prefer Sales Order Item image, fallback to Item master image
+		if order.get("custom_sales_order_image"):
+			order["item_image"] = order["custom_sales_order_image"]
+		elif order.get("image"):
 			order["item_image"] = order["image"]
 		else:
 			order["item_image"] = None
