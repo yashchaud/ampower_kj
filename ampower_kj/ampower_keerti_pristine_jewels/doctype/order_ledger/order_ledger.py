@@ -212,7 +212,7 @@ def apply_status_transition_effects(
 			order.karigar_received_weight = float(kwargs["karigar_received_weight"])
 
 		if kwargs.get("receive_notes"):
-			order.karigar_notes = kwargs["receive_notes"]
+			order.soi_karigar_notes = kwargs["receive_notes"]
 
 		# Allow manual date override
 		if kwargs.get("incoming_to_received"):
@@ -243,7 +243,7 @@ def apply_status_transition_effects(
 
 		if kwargs.get("received_to_incoming"):
 			revert_note = f"\nReverted from {statuses[3]} at {kwargs['received_to_incoming']}"
-			order.karigar_notes = (order.karigar_notes or "") + revert_note
+			order.soi_karigar_notes = (order.soi_karigar_notes or "") + revert_note
 
 
 # API ENDPOINTS
@@ -652,7 +652,7 @@ def split_order_item(item_name: str, split_qty) -> Dict:
 	first_entry.name = None
 	first_entry.qty = split_qty
 	split_note_1 = f"\nSplit from {item_name} ({total_qty} qty) on {frappe.utils.now_datetime()} - Part 1 of 2 ({split_qty} qty)"
-	first_entry.customer_notes = (first_entry.customer_notes or "") + split_note_1
+	first_entry.soi_customer_notes = (first_entry.soi_customer_notes or "") + split_note_1
 	first_entry.insert()
 
 	# Create second entry with remaining_qty
@@ -660,7 +660,7 @@ def split_order_item(item_name: str, split_qty) -> Dict:
 	second_entry.name = None
 	second_entry.qty = remaining_qty
 	split_note_2 = f"\nSplit from {item_name} ({total_qty} qty) on {frappe.utils.now_datetime()} - Part 2 of 2 ({remaining_qty} qty)"
-	second_entry.customer_notes = (second_entry.customer_notes or "") + split_note_2
+	second_entry.soi_customer_notes = (second_entry.soi_customer_notes or "") + split_note_2
 	second_entry.insert()
 
 	# Delete the original order
