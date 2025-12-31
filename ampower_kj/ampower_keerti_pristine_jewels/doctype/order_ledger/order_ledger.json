@@ -8,15 +8,15 @@
   "order_details_section",
   "sales_order",
   "item",
-  "customer_notes",
+  "soi_customer_notes",
   "disabled",
   "column_break_xiso",
   "sales_order_item",
-  "die",
-  "karigar",
+  "soi_die",
+  "soi_karigar",
   "column_break_unjd",
   "order_date",
-  "order_weight",
+  "soi_order_weight",
   "qty",
   "order_type",
   "order_status",
@@ -28,9 +28,9 @@
   "column_break_hfrs",
   "karigar_assigned_weight",
   "karigar_received_weight",
-  "karigar_notes",
+  "soi_karigar_notes",
   "display_details_section",
-  "planned_dispatch_date",
+  "soi_planned_dispatch_date",
   "column_break_foyp",
   "actual_dispatch_date",
   "dispatch_weight",
@@ -68,11 +68,6 @@
    "reqd": 1
   },
   {
-   "fieldname": "customer_notes",
-   "fieldtype": "Small Text",
-   "label": "Customer Notes"
-  },
-  {
    "default": "0",
    "fieldname": "disabled",
    "fieldtype": "Check",
@@ -89,18 +84,6 @@
    "options": "Sales Order Item"
   },
   {
-   "fieldname": "die",
-   "fieldtype": "Link",
-   "label": "Die",
-   "options": "Item"
-  },
-  {
-   "fieldname": "karigar",
-   "fieldtype": "Link",
-   "label": "Karigar",
-   "options": "Supplier"
-  },
-  {
    "fieldname": "column_break_unjd",
    "fieldtype": "Column Break"
   },
@@ -109,11 +92,6 @@
    "fieldtype": "Date",
    "label": "Order Date",
    "reqd": 1
-  },
-  {
-   "fieldname": "order_weight",
-   "fieldtype": "Float",
-   "label": "Order Weight"
   },
   {
    "default": "1",
@@ -174,11 +152,6 @@
    "label": "Karigar Received Weight"
   },
   {
-   "fieldname": "karigar_notes",
-   "fieldtype": "Small Text",
-   "label": "Karigar Notes"
-  },
-  {
    "fieldname": "dispatch_details_tab",
    "fieldtype": "Tab Break",
    "label": "Dispatch Details"
@@ -187,11 +160,6 @@
    "fieldname": "display_details_section",
    "fieldtype": "Section Break",
    "label": "Dispatch Details"
-  },
-  {
-   "fieldname": "planned_dispatch_date",
-   "fieldtype": "Date",
-   "label": "Planned Dispatch Date"
   },
   {
    "fieldname": "column_break_foyp",
@@ -226,12 +194,43 @@
    "fieldname": "dispatch_weight",
    "fieldtype": "Float",
    "label": "Dispatch Weight"
+  },
+  {
+   "fieldname": "soi_die",
+   "fieldtype": "Link",
+   "label": "Die",
+   "options": "Item"
+  },
+  {
+   "fieldname": "soi_karigar",
+   "fieldtype": "Link",
+   "label": "Karigar",
+   "options": "Supplier"
+  },
+  {
+   "fieldname": "soi_customer_notes",
+   "fieldtype": "Small Text",
+   "label": "Customer Notes"
+  },
+  {
+   "fieldname": "soi_order_weight",
+   "fieldtype": "Float",
+   "label": "Order Weight"
+  },
+  {
+   "fieldname": "soi_planned_dispatch_date",
+   "fieldtype": "Date",
+   "label": "Planned Dispatch Date"
+  },
+  {
+   "fieldname": "soi_karigar_notes",
+   "fieldtype": "Small Text",
+   "label": "Karigar Notes"
   }
  ],
- "grid_page_length": 50,
  "index_web_pages_for_search": 1,
  "links": [],
- "modified": "2025-12-24 14:00:53.265852",
+ "modified": "2025-12-30 23:26:45.242397",
  "modified_by": "Administrator",
  "module": "AmPower Keerti Pristine Jewels",
  "name": "Order Ledger",
@@ -262,7 +261,6 @@
    "write": 1
   }
  ],
- "row_format": "Dynamic",
  "sort_field": "modified",
  "sort_order": "DESC",
  "states": []

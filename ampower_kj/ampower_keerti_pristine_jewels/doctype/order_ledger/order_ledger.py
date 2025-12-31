@@ -292,21 +292,25 @@ def get_all_order_items(
 			OrderLedger.name,
 			OrderLedger.sales_order,
 			OrderLedger.item,
-			OrderLedger.customer_notes,
-			OrderLedger.order_status,
+ 			OrderLedger.order_status,
 			OrderLedger.karigar,
-			OrderLedger.order_weight,
-			OrderLedger.karigar_assigned_weight,
+ 			OrderLedger.karigar_assigned_weight,
 			OrderLedger.karigar_received_weight,
 			OrderLedger.dispatch_weight,
-			OrderLedger.karigar_notes,
-			OrderLedger.qa_notes,
+ 			OrderLedger.qa_notes,
 			OrderLedger.order_date,
 			OrderLedger.qty,
+ 			OrderLedger.planned_dispatch_date,
 			SalesOrder.customer,
 			Item.item_group,
 			Item.image,
 			SalesOrderItem.custom_sales_order_image,
+			OrderLedger.soi_order_weight,
+			OrderLedger.soi_die,
+			OrderLedger.soi_karigar,
+			OrderLedger.soi_karigar_notes,
+			OrderLedger.soi_customer_notes,
+			OrderLedger.soi_planned_dispatch_date,
 		)
 		.where(OrderLedger.disabled != 1)
 	)
@@ -372,6 +376,33 @@ def get_all_order_items(
 			images.append(order["image"])
 		order["images"] = images
 		order["item_image"] = images[0] if images else None
+
+		# Prioritize SOI fields over Order Ledger fields when they have values
+		# Use soi_order_weight if available, otherwise fall back to order_weight
+		if order.get("soi_order_weight") is not None:
+			order["item_weight"] = order.get("soi_order_weight")
+		else:
+			order["item_weight"] = order.get("order_weight")
+
+		# Use soi_karigar if available, otherwise fall back to karigar
+		if order.get("soi_karigar") is not None:
+			order["karigar"] = order.get("soi_karigar")
+
+		# Use soi_die if available, otherwise fall back to die/item_group
+		if order.get("soi_die") is not None:
+			order["item_group"] = order.get("soi_die")
+
+		# Use soi_karigar_notes if available, otherwise fall back to karigar_notes
+		if order.get("soi_karigar_notes") is not None:
+			order["karigar_notes"] = order.get("soi_karigar_notes")
+
+		# Use soi_customer_notes if available, otherwise fall back to customer_notes
+		if order.get("soi_customer_notes") is not None:
+			order["customer_notes"] = order.get("soi_customer_notes")
+
+		# Use soi_planned_dispatch_date if available, otherwise fall back to planned_dispatch_date
+		if order.get("soi_planned_dispatch_date") is not None:
+			order["planned_dispatch_date"] = order.get("soi_planned_dispatch_date")
 
 	return {
 		"data": orders,

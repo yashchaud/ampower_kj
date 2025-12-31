@@ -1387,10 +1387,10 @@ frappe.pages["karigar-workflow"].on_page_load = function (wrapper) {
 		// weight_type can be 'received' (Incoming → Internal QA) or 'dispatch' (Pending Delivery → Delivered)
 		weight_type = weight_type || "";
 
-		const item_weight = order.item_weight || 0;
-		const item_weight_display = item_weight ? parseFloat(item_weight).toFixed(2) : "-";
-		const karigar_received_weight = order.karigar_received_weight || 0;
-		const karigar_received_weight_display = karigar_received_weight ? parseFloat(karigar_received_weight).toFixed(2) : "-";
+		const item_weight = order.item_weight;
+		const item_weight_display = (item_weight !== null && item_weight !== undefined) ? parseFloat(item_weight).toFixed(2) : "-";
+		const karigar_received_weight = order.karigar_received_weight;
+		const karigar_received_weight_display = (karigar_received_weight !== null && karigar_received_weight !== undefined) ? parseFloat(karigar_received_weight).toFixed(2) : "-";
 
 		const weight_config = {
 			received: {
@@ -1672,9 +1672,27 @@ frappe.pages["karigar-workflow"].on_page_load = function (wrapper) {
 					return;
 				}
 
+				// Determine which weight field to update based on stage transition
+				let weight_field = null;
+				const is_incoming_to_qa = stage_info.current === "Incoming" && stage_info.next === "Internal QA";
+				const is_pending_to_delivered = stage_info.current === "Pending Delivery" && stage_info.next === "Delivered";
+
+				if (is_incoming_to_qa) {
+					weight_field = "karigar_received_weight";
+				} else if (is_pending_to_delivered) {
+					weight_field = "dispatch_weight";
+				}
+
 				// Get the total weight from input
-				const total_weight =
-					parseFloat(dialog.$wrapper.find(".bulk-weight-input").val()) || 0;
+				const weight_input_value = dialog.$wrapper.find(".bulk-weight-input").val();
+				const total_weight = parseFloat(weight_input_value) || 0;
+
+				// Edge case: Check if weight is required but not provided
+				if (weight_field && (!weight_input_value || weight_input_value.trim() === "" || total_weight <= 0)) {
+					const weight_label = is_pending_to_delivered ? "dispatch weight" : "received weight";
+					frappe.msgprint(__("Please enter a valid {0} for bulk update", [weight_label]));
+					return;
+				}
 
 				// Calculate total quantity from all selected orders
 				const total_qty = selected_orders.reduce(
@@ -1684,17 +1702,6 @@ frappe.pages["karigar-workflow"].on_page_load = function (wrapper) {
 
 				// Calculate weight per unit (weight per single quantity)
 				const weight_per_unit = total_qty > 0 ? total_weight / total_qty : 0;
-
-				// Determine which weight field to update based on stage transition
-				let weight_field = null;
-				if (stage_info.current === "Incoming" && stage_info.next === "Internal QA") {
-					weight_field = "karigar_received_weight";
-				} else if (
-					stage_info.current === "Pending Delivery" &&
-					stage_info.next === "Delivered"
-				) {
-					weight_field = "dispatch_weight";
-				}
 
 				// Prepare extra args with weight information
 				const extra_args = {};
