@@ -1,5 +1,6 @@
 import frappe
 from frappe.model.document import Document
+from typing import List, Dict, Optional
 
 
 class OrderLedger(Document):
@@ -20,413 +21,252 @@ class OrderLedger(Document):
 DEFAULT_PAGE_LIMIT = 100
 KARIGAR_PAGE_LIMIT = 200
 
+# Cache keys
+CACHE_KEY_WORKFLOW_STATUSES = "order_ledger_workflow_statuses"
+CACHE_KEY_WORKFLOW_STAGES = "order_ledger_workflow_stages"
+CACHE_EXPIRY = 3600  
 
-def get_workflow_stages():
+
+# WORKFLOW STATUS HELPERS
+
+def _get_workflow_status_cached() -> List[str]:
+	"""
+	Returns workflow status options from Order Ledger metadata.
+	Cached to avoid repeated DocType queries.
+	Internal use only - use get_workflow_status() for public API.
+	"""
+	cache_key = CACHE_KEY_WORKFLOW_STATUSES
+	statuses = frappe.cache().get_value(cache_key)
+
+	if statuses:
+		return statuses
+
+	meta = frappe.get_meta("Order Ledger")
+	field = meta.get_field("order_status")
+
+	if not field:
+		frappe.throw("Field 'order_status' not found in Order Ledger DocType.")
+
+	if field.fieldtype != "Select":
+		frappe.throw(f"Field 'order_status' must be of type Select, found {field.fieldtype}")
+
+	statuses = [s.strip() for s in field.options.split("\n") if s.strip()]
+
+	if not statuses:
+		frappe.throw("No workflow statuses defined in order_status field")
+
+	# Cache for 1 hour
+	frappe.cache().set_value(cache_key, statuses, expires_in_sec=CACHE_EXPIRY)
+
+	return statuses
+
+
+def status_to_key(status: str) -> str:
+	"""
+	Convert status label to key (e.g., "Internal QA" -> "internal_qa").
+	Centralized to avoid duplication.
+	"""
+	return status.lower().replace(" ", "_")
+
+
+def key_to_status(key: str, statuses: Optional[List[str]] = None) -> Optional[str]:
+	"""
+	Convert key to status label (e.g., "internal_qa" -> "Internal QA").
+	Returns None if not found.
+	"""
+	if statuses is None:
+		statuses = _get_workflow_status_cached()
+
+	for status in statuses:
+		if status_to_key(status) == key:
+			return status
+	return None
+
+
+def get_workflow_stages() -> List[Dict]:
 	"""
 	Get workflow stages dynamically from Order Ledger DocType metadata.
 	Returns list of stage dictionaries with id, label, key, and status.
-	Uses caching to avoid repeated DocType metadata queries.
+	Uses caching to avoid repeated queries.
 	"""
-	cache_key = "order_ledger_workflow_stages"
+	cache_key = CACHE_KEY_WORKFLOW_STAGES
 	stages = frappe.cache().get_value(cache_key)
 
 	if stages:
 		return stages
 
-	# Get statuses from DocType field metadata
-	statuses = get_workflow_status()
+	# Get statuses (cached)
+	statuses = _get_workflow_status_cached()
 
 	# Build stages dynamically
-	stages = []
-	for idx, status in enumerate(statuses):
-		# Convert status to key (e.g., "Internal QA" -> "internal_qa")
-		key = status.lower().replace(" ", "_")
-		stages.append({"id": idx + 1, "label": status, "key": key, "status": status})
+	stages = [
+		{
+			"id": idx + 1,
+			"label": status,
+			"key": status_to_key(status),
+			"status": status
+		}
+		for idx, status in enumerate(statuses)
+	]
 
 	# Cache for 1 hour
-	frappe.cache().set_value(cache_key, stages, expires_in_sec=3600)
+	frappe.cache().set_value(cache_key, stages, expires_in_sec=CACHE_EXPIRY)
 
 	return stages
 
 
-def enrich_order_data(orders):
+def get_status_index(status: str, statuses: Optional[List[str]] = None) -> int:
 	"""
-	Enrich order data with customer and item details using bulk fetching.
-	Solves N+1 query problem by fetching all related data in bulk.
-
-	Args:
-		orders: List of order dictionaries
-
-	Returns:
-		List of enriched order dictionaries
+	Get zero-based index of a status in workflow.
+	Returns -1 if not found.
 	"""
-	if not orders:
-		return orders
+	if statuses is None:
+		statuses = _get_workflow_status_cached()
 
-	# Extract unique sales orders and items
-	sales_order_ids = {order.get("sales_order") for order in orders if order.get("sales_order")}
-	item_ids = {order.get("item") for order in orders if order.get("item")}
-
-	# Bulk fetch customers from sales orders
-	customer_map = {}
-	if sales_order_ids:
-		sales_orders = frappe.get_all(
-			"Sales Order", filters={"name": ["in", list(sales_order_ids)]}, fields=["name", "customer"]
-		)
-		customer_map = {so["name"]: so["customer"] for so in sales_orders}
-
-	# Bulk fetch item details
-	item_map = {}
-	if item_ids:
-		items = frappe.get_all(
-			"Item", filters={"name": ["in", list(item_ids)]}, fields=["name", "item_name", "item_group"]
-		)
-		item_map = {item["name"]: item for item in items}
-
-	# Enrich each order
-	for order in orders:
-		# Add customer from sales order
-		sales_order = order.get("sales_order")
-		order["customer"] = customer_map.get(sales_order, "") if sales_order else ""
-
-		# Add item details
-		item_code = order.get("item")
-		if item_code and item_code in item_map:
-			item_data = item_map[item_code]
-			order["item_code"] = item_code
-			order["item_name"] = item_data.get("item_name", "")
-			order["item_group"] = item_data.get("item_group", "")
-		else:
-			order["item_code"] = item_code or ""
-			order["item_name"] = ""
-			order["item_group"] = ""
-
-		# Map fields for frontend compatibility
-		order["our_details"] = order.get("order_weight", 0)
-		order["smith_details"] = order.get("karigar_assigned_weight", 0)
-		order["qty"] = order.get("qty", 1)
-		order["parent"] = order.get("sales_order")
-		order["doctype"] = "Order Ledger"
-
-	return orders
+	try:
+		return statuses.index(status)
+	except ValueError:
+		return -1
 
 
-def get_workflow_progression_map():
+def get_workflow_progression_map() -> Dict[str, str]:
 	"""
 	Build workflow progression map dynamically from workflow statuses.
 	Returns a dict mapping current status to next status.
-	Assumes sequential workflow progression based on order of statuses.
 	"""
-	statuses = get_workflow_status()
-	workflow_map = {}
-
-	# Build sequential progression map (status[i] -> status[i+1])
-	for i in range(len(statuses) - 1):
-		workflow_map[statuses[i]] = statuses[i + 1]
-
-	return workflow_map
+	statuses = _get_workflow_status_cached()
+	return {statuses[i]: statuses[i + 1] for i in range(len(statuses) - 1)}
 
 
-def get_reverse_workflow_map():
+def get_reverse_workflow_map() -> Dict[str, str]:
 	"""
 	Build reverse workflow progression map dynamically from workflow statuses.
 	Returns a dict mapping current status to previous status.
 	"""
-	statuses = get_workflow_status()
-	reverse_map = {}
-
-	# Build reverse progression map (status[i] -> status[i-1])
-	for i in range(1, len(statuses)):
-		reverse_map[statuses[i]] = statuses[i - 1]
-
-	return reverse_map
+	statuses = _get_workflow_status_cached()
+	return {statuses[i]: statuses[i - 1] for i in range(1, len(statuses))}
 
 
-def get_stage_filters(stage_key):
+def get_stage_filters(stage_key: str) -> Dict:
 	"""Get frappe filters for a specific stage using order_status field."""
-	filters = {"disabled": ["!=", 1]}  # Check field: 0 = not disabled
+	filters = {"disabled": ["!=", 1]}
 
-	# Build stage_to_status mapping dynamically from workflow statuses
-	statuses = get_workflow_status()
-	stage_to_status = {}
-	for status in statuses:
-		# Convert status to key (e.g., "Internal QA" -> "internal_qa")
-		key = status.lower().replace(" ", "_")
-		stage_to_status[key] = status
-
-	# Use order_status field directly instead of deriving from date fields
-	if stage_key in stage_to_status:
-		filters["order_status"] = stage_to_status[stage_key]
+	# Convert key to status
+	status = key_to_status(stage_key)
+	if status:
+		filters["order_status"] = status
 
 	return filters
 
 
-@frappe.whitelist()
-def get_workflow_data(stage_key=None, search=None, karigar=None, customer=None, item_group=None):
-	"""Get workflow stages with counts and orders for the selected stage."""
+# TRANSITION LOGIC (Centralized & Maintainable)
 
-	# Get workflow stages dynamically
-	workflow_stages = get_workflow_stages()
+def apply_status_transition_effects(
+	order: Document,
+	current_status: str,
+	new_status: str,
+	kwargs: Optional[Dict] = None
+) -> None:
+	"""
+	Apply side effects when transitioning between statuses.
+	Handles date updates and field changes based on workflow transitions.
 
-	# Get counts for each stage
-	stages = []
-	for stage in workflow_stages:
-		filters = get_stage_filters(stage["key"])
-		count = frappe.db.count("Order Ledger", filters=filters)
-		stages.append(
-			{
-				"id": stage["id"],
-				"label": stage["label"],
-				"key": stage["key"],
-				"count": count,
-				"active": stage["key"] == stage_key,
-			}
-		)
+	Args:
+		order: Order Ledger document
+		current_status: Current order status
+		new_status: Target order status
+		kwargs: Optional parameters (weights, notes, dates, etc.)
+	"""
+	if kwargs is None:
+		kwargs = {}
 
-	# Default to first stage with orders if no stage selected
-	if not stage_key:
-		for stage in stages:
-			if stage["count"] > 0:
-				stage_key = stage["key"]
-				stage["active"] = True
-				break
-		if not stage_key:
-			# Default to first stage key if no stages have orders
-			stage_key = stages[0]["key"] if stages else "unassigned"
-			if stages:
-				stages[0]["active"] = True
+	statuses = _get_workflow_status_cached()
+	current_idx = get_status_index(current_status, statuses)
+	new_idx = get_status_index(new_status, statuses)
 
-	# Get orders for selected stage
-	filters = get_stage_filters(stage_key)
+	# Invalid status - skip transition logic
+	if current_idx == -1 or new_idx == -1:
+		return
 
-	# Apply additional filters
-	if karigar:
-		filters["karigar"] = karigar
-	if search:
-		filters["name"] = ["like", f"%{search}%"]
-
-	orders = frappe.get_all(
-		"Order Ledger",
-		filters=filters,
-		fields=[
-			"name",
-			"sales_order",
-			"item",
-			"karigar",
-			"order_weight",
-			"karigar_assigned_weight",
-			"order_date",
-			"karigar_assignment_date",
-			"karigar_incoming_date",
-			"karigar_actual_receive_date",
-			"is_qa_cleared",
-			"actual_dispatch_date",
-			"customer_notes",
-		],
-		order_by="modified desc",
-		limit_page_length=DEFAULT_PAGE_LIMIT,
-	)
-
-	# Enrich orders
-	# Get default status (first status in workflow)
-	default_status = get_workflow_status()[0] if get_workflow_status() else ""
-
-	for order in orders:
-		# Use order_status directly instead of deriving from fields
-		order["stage"] = order.get("order_status", default_status).lower().replace(" ", "_")
-		order["customer_name"] = order.get("customer_notes", "")[:50] if order.get("customer_notes") else ""
-		order["item_name"] = order.get("item") or ""
-
-	# Get unique karigars from Order Ledger for filter dropdown (ORM only)
-	karigars = frappe.get_all(
-		"Order Ledger",
-		filters={"karigar": ["is", "set"]},  # not null + not empty
-		pluck="karigar",
-		group_by="karigar",
-		order_by="karigar asc",
-	)
-
-	return {
-		"stages": stages,
-		"orders": orders,
-		"active_stage": stage_key,
-		"filters": {"karigars": karigars, "customers": [], "item_groups": []},
-	}
-
-
-@frappe.whitelist()
-def move_to_next_stage(order_name):
-	"""Move an order to the next workflow stage."""
-	order = frappe.get_doc("Order Ledger", order_name)
-	order.check_permission("write")
-	current_status = order.order_status
-
-	# Get workflow progression map dynamically
-	workflow_map = get_workflow_progression_map()
-
-	# Get first status for validation
-	statuses = get_workflow_status()
-	first_status = statuses[0] if statuses else None
-
-	if current_status not in workflow_map:
-		frappe.throw(f"Cannot move from status: {current_status}")
-
-	if current_status == first_status and not order.karigar:
-		frappe.throw("Please assign a Karigar first before moving to next stage")
-
-	# Get next status
-	next_status = workflow_map[current_status]
-	order.order_status = next_status
-
-	# Set appropriate date fields (will be handled by before_save or update_item_status)
 	today = frappe.utils.today()
 
-	# Status index for progression logic
-	current_idx = statuses.index(current_status)
-	next_idx = statuses.index(next_status)
+	# ========== FORWARD TRANSITIONS ==========
 
-	# Handle status-specific field updates based on progression
-	if current_idx == 0 and next_idx == 1:  # Unassigned -> Assigned
+	# Transition 0→1: Unassigned → Assigned (e.g., Karigar Assignment)
+	if current_idx == 0 and new_idx == 1:
 		if not order.karigar_assignment_date:
 			order.karigar_assignment_date = today
-	elif next_idx == 2:  # Moving to Incoming (index 2)
+
+	# Transition to index 2: Any → Incoming
+	if new_idx == 2:
 		if not order.karigar_incoming_date:
 			order.karigar_incoming_date = today
-	elif current_idx == 2 and next_idx == 3:  # Incoming -> Internal QA
+
+	# Transition 2→3: Incoming → Internal QA (Receiving goods)
+	if current_idx == 2 and new_idx == 3:
 		if not order.karigar_actual_receive_date:
 			order.karigar_actual_receive_date = today
-	elif current_idx == 3 and next_idx == 4:  # Internal QA -> Pending Delivery
+
+		# Handle weight and notes for receiving
+		if kwargs.get("karigar_received_weight") and not kwargs.get("weight_per_unit"):
+			order.karigar_received_weight = float(kwargs["karigar_received_weight"])
+
+		if kwargs.get("receive_notes"):
+			order.karigar_notes = kwargs["receive_notes"]
+
+		# Allow manual date override
+		if kwargs.get("incoming_to_received"):
+			order.karigar_actual_receive_date = kwargs["incoming_to_received"]
+
+	# Transition 3→4: Internal QA → Pending Delivery (QA cleared)
+	if current_idx == 3 and new_idx == 4:
 		order.is_qa_cleared = 1
-	elif current_idx == 4 and next_idx == 5:  # Pending Delivery -> Delivered
+
+	# Transition 4→5: Pending Delivery → Delivered (Dispatch)
+	if current_idx == 4 and new_idx == 5:
 		if not order.actual_dispatch_date:
 			order.actual_dispatch_date = today
 
-	order.save()
+		# Handle dispatch weight and QA notes
+		if kwargs.get("dispatch_weight") and not kwargs.get("weight_per_unit"):
+			order.dispatch_weight = float(kwargs["dispatch_weight"])
 
-	return {"success": True, "new_stage": next_status}
+		if kwargs.get("dispatch_notes"):
+			order.qa_notes = kwargs["dispatch_notes"]
 
+	# ========== REVERSE TRANSITIONS (Revert/Undo) ==========
 
-@frappe.whitelist()
-def move_to_previous_stage(order_name):
-	"""Move an order to the previous workflow stage."""
-	order = frappe.get_doc("Order Ledger", order_name)
-	order.check_permission("write")
-	current_status = order.order_status
-
-	# Get reverse workflow progression map dynamically
-	reverse_workflow_map = get_reverse_workflow_map()
-
-	# Get statuses for index-based logic
-	statuses = get_workflow_status()
-
-	if current_status not in reverse_workflow_map:
-		frappe.throw(f"Cannot move back from status: {current_status}")
-
-	# Get previous status
-	prev_status = reverse_workflow_map[current_status]
-	order.order_status = prev_status
-
-	# Status index for regression logic
-	current_idx = statuses.index(current_status)
-	prev_idx = statuses.index(prev_status)
-
-	# Clear appropriate fields when moving back
-	if current_idx == 1 and prev_idx == 0:  # Assigned -> Unassigned
-		order.karigar = None
-		order.karigar_assignment_date = None
-	elif current_idx == 2 and prev_idx == 1:  # Incoming -> Assigned
-		order.karigar_incoming_date = None
-	elif current_idx == 3 and prev_idx == 2:  # Internal QA -> Incoming
-		order.karigar_actual_receive_date = None
+	# Transition 3→2: Internal QA → Incoming (Revert receiving)
+	if current_idx == 3 and new_idx == 2:
 		order.karigar_received_weight = None
-	elif current_idx == 4 and prev_idx == 3:  # Pending Delivery -> Internal QA
-		order.is_qa_cleared = 0
-	elif current_idx == 5 and prev_idx == 4:  # Delivered -> Pending Delivery
-		order.actual_dispatch_date = None
-		order.dispatch_weight = None
+		order.karigar_actual_receive_date = None
 
-	order.save()
-
-	return {"success": True, "new_stage": prev_status}
+		if kwargs.get("received_to_incoming"):
+			revert_note = f"\nReverted from {statuses[3]} at {kwargs['received_to_incoming']}"
+			order.karigar_notes = (order.karigar_notes or "") + revert_note
 
 
-@frappe.whitelist()
-def bulk_move_to_next_stage(order_names):
-	"""Move multiple orders to the next stage."""
-	if isinstance(order_names, str):
-		order_names = frappe.parse_json(order_names)
-
-	results = []
-	for name in order_names:
-		try:
-			result = move_to_next_stage(name)
-			results.append({"name": name, "success": True, "new_stage": result["new_stage"]})
-		except Exception as e:
-			results.append({"name": name, "success": False, "error": str(e)})
-
-	return results
-
-
-@frappe.whitelist()
-def update_order_details(order_name, weight=None, load=None):
-	"""Update order weight and load without moving stages."""
-	order = frappe.get_doc("Order Ledger", order_name)
-	order.check_permission("write")
-
-	if weight is not None:
-		order.order_weight = weight
-	if load is not None:
-		order.karigar_assigned_weight = load
-
-	order.save()
-
-	return {"success": True, "message": "Order details updated successfully"}
-
-
-@frappe.whitelist()
-def update_and_move_to_next(order_name, weight=None, load=None):
-	"""Update order weight/load and move to next stage."""
-	# First update the details
-	order = frappe.get_doc("Order Ledger", order_name)
-	order.check_permission("write")
-
-	if weight is not None:
-		order.order_weight = weight
-	if load is not None:
-		order.karigar_assigned_weight = load
-
-	order.save()
-
-	# Then move to next stage
-	result = move_to_next_stage(order_name)
-
-	return {
-		"success": True,
-		"new_stage": result["new_stage"],
-		"message": "Order updated and moved to next stage",
-	}
-
-
+# API ENDPOINTS
+ 
 @frappe.whitelist()
 def get_workflow_status():
 	"""
+	Public API to get workflow statuses.
 	Returns workflow status options from Order Ledger metadata.
 	"""
-	meta = frappe.get_meta("Order Ledger")
-	field = meta.get_field("order_status")
-
-	if not field:
-		frappe.throw("Field 'order_status' not found in Order Ledger.")
-
-	if field and field.fieldtype == "Select":
-		return field.options.split("\n")
-	return []
+	return _get_workflow_status_cached()
 
 
 @frappe.whitelist()
 def get_all_order_items(
-	page=1, page_size=10, order_status=None, search=None, customer=None, karigar=None, item_group=None
-):
+	page=1,
+	page_size=10,
+	order_status=None,
+	search=None,
+	customer=None,
+	karigar=None,
+	item_group=None
+) -> Dict:
 	"""Fetches Order Ledger entries with server-side pagination and filtering."""
 	from frappe.query_builder import DocType
 	from frappe.query_builder.functions import Count
@@ -440,19 +280,14 @@ def get_all_order_items(
 	OrderLedger = DocType("Order Ledger")
 	SalesOrder = DocType("Sales Order")
 	Item = DocType("Item")
-
-	# Define Sales Order Item DocType for joining
 	SalesOrderItem = DocType("Sales Order Item")
 
 	# Build base query with joins
 	query = (
 		frappe.qb.from_(OrderLedger)
-		.left_join(SalesOrder)
-		.on(OrderLedger.sales_order == SalesOrder.name)
-		.left_join(Item)
-		.on(OrderLedger.item == Item.name)
-		.left_join(SalesOrderItem)
-		.on(OrderLedger.sales_order_item == SalesOrderItem.name)
+		.left_join(SalesOrder).on(OrderLedger.sales_order == SalesOrder.name)
+		.left_join(Item).on(OrderLedger.item == Item.name)
+		.left_join(SalesOrderItem).on(OrderLedger.sales_order_item == SalesOrderItem.name)
 		.select(
 			OrderLedger.name,
 			OrderLedger.sales_order,
@@ -479,10 +314,8 @@ def get_all_order_items(
 	# Count query
 	count_query = (
 		frappe.qb.from_(OrderLedger)
-		.left_join(SalesOrder)
-		.on(OrderLedger.sales_order == SalesOrder.name)
-		.left_join(Item)
-		.on(OrderLedger.item == Item.name)
+		.left_join(SalesOrder).on(OrderLedger.sales_order == SalesOrder.name)
+		.left_join(Item).on(OrderLedger.item == Item.name)
 		.select(Count("*").as_("total"))
 		.where(OrderLedger.disabled != 1)
 	)
@@ -527,19 +360,17 @@ def get_all_order_items(
 	# Enrich data with additional fields for frontend compatibility
 	for order in orders:
 		order["item_code"] = order.get("item") or ""
-		order["our_details"] = order.get("order_weight", 0)
-		order["smith_details"] = order.get("karigar_assigned_weight", 0)
 		order["qty"] = order.get("qty", 1)
 		order["parent"] = order.get("sales_order")
 		order["doctype"] = "Order Ledger"
-		# Build images array with all available images (Sales Order Item image + Item master image)
+
+		# Build images array (Sales Order Item image + Item master image)
 		images = []
 		if order.get("custom_sales_order_image"):
 			images.append(order["custom_sales_order_image"])
 		if order.get("image"):
 			images.append(order["image"])
 		order["images"] = images
-		# Keep item_image for backward compatibility (first available image)
 		order["item_image"] = images[0] if images else None
 
 	return {
@@ -547,17 +378,22 @@ def get_all_order_items(
 		"total": total_count,
 		"page": page,
 		"page_size": page_size,
-		"total_pages": (total_count + page_size - 1) // page_size,  # Ceiling division
+		"total_pages": (total_count + page_size - 1) // page_size,
 	}
 
 
 @frappe.whitelist()
-def get_status_counts(customer=None, karigar=None, item_group=None, search=None):
+def get_status_counts(
+	customer=None,
+	karigar=None,
+	item_group=None,
+	search=None
+) -> Dict[str, int]:
 	"""Get count of orders for each status with optional filters."""
 	from frappe.query_builder import DocType
 	from frappe.query_builder.functions import Count
 
-	statuses = get_workflow_status()
+	statuses = _get_workflow_status_cached()
 	counts = {}
 
 	# Define DocTypes
@@ -569,10 +405,8 @@ def get_status_counts(customer=None, karigar=None, item_group=None, search=None)
 		# Build count query with joins
 		query = (
 			frappe.qb.from_(OrderLedger)
-			.left_join(SalesOrder)
-			.on(OrderLedger.sales_order == SalesOrder.name)
-			.left_join(Item)
-			.on(OrderLedger.item == Item.name)
+			.left_join(SalesOrder).on(OrderLedger.sales_order == SalesOrder.name)
+			.left_join(Item).on(OrderLedger.item == Item.name)
 			.select(Count("*").as_("total"))
 			.where(OrderLedger.disabled != 1)
 			.where(OrderLedger.order_status == status)
@@ -581,13 +415,10 @@ def get_status_counts(customer=None, karigar=None, item_group=None, search=None)
 		# Apply filters
 		if customer:
 			query = query.where(SalesOrder.customer == customer)
-
 		if karigar:
 			query = query.where(OrderLedger.karigar == karigar)
-
 		if item_group:
 			query = query.where(Item.item_group == item_group)
-
 		if search:
 			search_condition = (
 				(OrderLedger.name.like(f"%{search}%"))
@@ -604,9 +435,9 @@ def get_status_counts(customer=None, karigar=None, item_group=None, search=None)
 
 
 @frappe.whitelist()
-def get_filter_options():
-	"""Get unique filter options for autocomplete (customers, karigars, item groups).
-
+def get_filter_options() -> Dict[str, List[str]]:
+	"""
+	Get unique filter options for autocomplete (customers, karigars, item groups).
 	Returns all options across all stages so filtering works regardless of current stage.
 	"""
 	from frappe.query_builder import DocType
@@ -617,14 +448,12 @@ def get_filter_options():
 	SalesOrder = DocType("Sales Order")
 	Item = DocType("Item")
 
-	# Base condition
 	base_condition = OrderLedger.disabled != 1
 
-	# Get unique customers (from all stages)
+	# Get unique customers
 	customer_query = (
 		frappe.qb.from_(OrderLedger)
-		.left_join(SalesOrder)
-		.on(OrderLedger.sales_order == SalesOrder.name)
+		.left_join(SalesOrder).on(OrderLedger.sales_order == SalesOrder.name)
 		.select(SalesOrder.customer)
 		.distinct()
 		.where(base_condition)
@@ -634,7 +463,7 @@ def get_filter_options():
 	)
 	customers = [row[0] for row in customer_query.run() if row[0]]
 
-	# Get unique karigars (from all stages)
+	# Get unique karigars
 	karigar_query = (
 		frappe.qb.from_(OrderLedger)
 		.select(OrderLedger.karigar)
@@ -646,11 +475,10 @@ def get_filter_options():
 	)
 	karigars = [row[0] for row in karigar_query.run() if row[0]]
 
-	# Get unique item groups (from all stages)
+	# Get unique item groups
 	item_group_query = (
 		frappe.qb.from_(OrderLedger)
-		.left_join(Item)
-		.on(OrderLedger.item == Item.name)
+		.left_join(Item).on(OrderLedger.item == Item.name)
 		.select(Item.item_group)
 		.distinct()
 		.where(base_condition)
@@ -661,41 +489,6 @@ def get_filter_options():
 	item_groups = [row[0] for row in item_group_query.run() if row[0]]
 
 	return {"customers": customers, "karigars": karigars, "item_groups": item_groups}
-
-
-@frappe.whitelist()
-def get_order_items_by_karigar(karigar, customer=None, item_group=None):
-	"""Fetches all Order Ledger entries for a specific karigar with enriched data."""
-	if not karigar:
-		frappe.throw("Karigar is required")
-
-	# Build filters
-	filters = {"karigar": karigar, "disabled": ["!=", 1]}
-
-	# Fetch Order Ledger records
-	orders = frappe.get_all(
-		"Order Ledger",
-		filters=filters,
-		fields=[
-			"name",
-			"sales_order",
-			"item",
-			"customer_notes",
-			"order_status",
-			"karigar",
-			"order_weight",
-			"karigar_assigned_weight",
-			"karigar_received_weight",
-			"karigar_notes",
-			"order_date",
-			"qty",
-		],
-		order_by="modified desc",
-		limit_page_length=KARIGAR_PAGE_LIMIT,
-	)
-
-	# Enrich data with linked records using bulk fetching (solves N+1 problem)
-	return enrich_order_data(orders)
 
 
 @frappe.whitelist()
@@ -710,8 +503,11 @@ def update_item_status(
 	dispatch_notes=None,
 	weight_per_unit=None,
 	weight_field=None,
-):
-	"""Updates order_status for one or more Order Ledger entries."""
+) -> List[Dict]:
+	"""
+	Updates order_status for one or more Order Ledger entries.
+	Applies transition side effects based on workflow logic.
+	"""
 	# Parse item_names if it's a JSON string
 	if isinstance(item_names, str):
 		item_names = frappe.parse_json(item_names)
@@ -720,7 +516,7 @@ def update_item_status(
 		item_names = [item_names]
 
 	# Validate new_status against allowed workflow statuses
-	allowed_statuses = get_workflow_status()
+	allowed_statuses = _get_workflow_status_cached()
 	if new_status not in allowed_statuses:
 		frappe.throw(f"Invalid status '{new_status}'. Must be one of: {', '.join(allowed_statuses)}")
 
@@ -733,6 +529,17 @@ def update_item_status(
 		except (ValueError, TypeError):
 			frappe.throw("Invalid weight per unit. Please enter a valid number.")
 
+	# Prepare kwargs for transition handler
+	transition_kwargs = {
+		"karigar_received_weight": karigar_received_weight,
+		"receive_notes": receive_notes,
+		"incoming_to_received": incoming_to_received,
+		"received_to_incoming": received_to_incoming,
+		"dispatch_weight": dispatch_weight,
+		"dispatch_notes": dispatch_notes,
+		"weight_per_unit": weight_per_unit,
+	}
+
 	results = []
 	total = len(item_names)
 
@@ -744,74 +551,17 @@ def update_item_status(
 
 			current_status = order.get("order_status")
 
-			# Update status
-			order.order_status = new_status
-
-			# Apply bulk weight update if weight_per_unit and weight_field are provided
-			# Calculate weight for this entry based on its quantity
+			# Apply bulk weight update if weight_per_unit and weight_field provided
 			if weight_per_unit and weight_field:
 				entry_qty = float(order.qty) if order.qty else 1
 				entry_weight = entry_qty * weight_per_unit
 				setattr(order, weight_field, entry_weight)
 
-			# Get statuses for index-based transition logic
-			statuses = allowed_statuses
+			# Update status
+			order.order_status = new_status
 
-			# Get indices for current and new status
-			try:
-				current_idx = statuses.index(current_status) if current_status in statuses else -1
-				new_idx = statuses.index(new_status)
-			except ValueError:
-				# If status not found, skip transition logic
-				current_idx = -1
-				new_idx = -1
-
-			# Auto-assign dates based on status transitions
-			# Use index-based logic to avoid hardcoded status names
-			if current_idx == 0 and new_idx == 1:  # Unassigned -> Assigned
-				if not order.karigar_assignment_date:
-					order.karigar_assignment_date = frappe.utils.today()
-
-			if new_idx == 2:  # Moving to Incoming
-				if not order.karigar_incoming_date:
-					order.karigar_incoming_date = frappe.utils.today()
-
-			if current_idx == 2 and new_idx == 3:  # Incoming -> Internal QA
-				if not order.karigar_actual_receive_date:
-					order.karigar_actual_receive_date = frappe.utils.today()
-
-			if current_idx == 3 and new_idx == 4:  # Internal QA -> Pending Delivery
-				order.is_qa_cleared = 1
-
-			if current_idx == 4 and new_idx == 5:  # Pending Delivery -> Delivered
-				if not order.actual_dispatch_date:
-					order.actual_dispatch_date = frappe.utils.today()
-
-			# Special handling for Incoming → Internal QA (weight and notes)
-			if current_idx == 2 and new_idx == 3:  # Incoming -> Internal QA
-				if karigar_received_weight and not weight_per_unit:
-					order.karigar_received_weight = float(karigar_received_weight)
-				if receive_notes:
-					order.karigar_notes = receive_notes
-				# Allow manual override of receive date if provided
-				if incoming_to_received:
-					order.karigar_actual_receive_date = incoming_to_received
-
-			# Special handling for Internal QA → Incoming (revert)
-			elif current_idx == 3 and new_idx == 2:  # Internal QA -> Incoming
-				order.karigar_received_weight = None
-				order.karigar_actual_receive_date = None
-				if received_to_incoming:
-					revert_note = f"\nReverted from {statuses[3]} at {received_to_incoming}"
-					order.karigar_notes = (order.karigar_notes or "") + revert_note
-
-			# Special handling for Pending Delivery → Delivered (weight and QA notes)
-			elif current_idx == 4 and new_idx == 5:  # Pending Delivery -> Delivered
-				if dispatch_weight and not weight_per_unit:
-					order.dispatch_weight = float(dispatch_weight)
-				# QA notes are captured when moving to Delivered
-				if dispatch_notes:
-					order.qa_notes = dispatch_notes
+			# Apply transition side effects
+			apply_status_transition_effects(order, current_status, new_status, transition_kwargs)
 
 			# Save the order
 			order.save()
@@ -832,7 +582,7 @@ def update_item_status(
 
 
 @frappe.whitelist()
-def split_order_item(item_name, split_qty):
+def split_order_item(item_name: str, split_qty) -> Dict:
 	"""
 	Splits an Order Ledger entry into two entries.
 	Example: Entry with 100 qty, user enters 60 → creates 60 qty and 40 qty entries.
@@ -884,9 +634,6 @@ def split_order_item(item_name, split_qty):
 
 	# Delete the original order
 	original_order.delete()
-
-	# Frappe will auto-commit at the end of the request
-	# No manual commit needed - this allows proper rollback on errors
 
 	return {
 		"success": True,

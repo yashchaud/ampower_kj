@@ -47,11 +47,10 @@ frappe.pages["karigar-workflow"].on_page_load = function (wrapper) {
 			is_last: current_index === stages.length - 1,
 		};
 	};
-
-	// Helper function to format item display as {itemcode}-{item-name}
 	page.format_item_display = function (order) {
 		const item_code = order.item_code || "";
 		const item_name = order.item || "";
+		console.log("Formatting item display:", item_code, item_name, order);
 
 		if (!item_code) {
 			return "N/A";
@@ -60,7 +59,6 @@ frappe.pages["karigar-workflow"].on_page_load = function (wrapper) {
 		if (!item_name) {
 			return item_code;
 		}
-		console.log(item_code, item_name);
 		return `${item_code}-${item_name}`;
 	};
 
@@ -100,6 +98,7 @@ frappe.pages["karigar-workflow"].on_page_load = function (wrapper) {
 		});
 	};
 
+	
 	// Get workflow statuses and initialize UI
 	frappe.call({
 		method: "ampower_kj.ampower_keerti_pristine_jewels.doctype.order_ledger.order_ledger.get_workflow_status",
@@ -1195,7 +1194,7 @@ frappe.pages["karigar-workflow"].on_page_load = function (wrapper) {
 							<a href="/app/item/${
 								order.item_code || ""
 							}" target="_blank" style="color: #2490EF; text-decoration: none;">${
-			page.format_item_display(order)
+				page.format_item_display(order)
 		}</a>
 						</div>
 					</div>
