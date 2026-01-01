@@ -292,15 +292,13 @@ def get_all_order_items(
 			OrderLedger.name,
 			OrderLedger.sales_order,
 			OrderLedger.item,
- 			OrderLedger.order_status,
-			OrderLedger.karigar,
- 			OrderLedger.karigar_assigned_weight,
+			OrderLedger.order_status,
+			OrderLedger.karigar_assigned_weight,
 			OrderLedger.karigar_received_weight,
 			OrderLedger.dispatch_weight,
  			OrderLedger.qa_notes,
 			OrderLedger.order_date,
 			OrderLedger.qty,
- 			OrderLedger.planned_dispatch_date,
 			SalesOrder.customer,
 			Item.item_group,
 			Item.image,
@@ -330,8 +328,8 @@ def get_all_order_items(
 		count_query = count_query.where(OrderLedger.order_status == order_status)
 
 	if karigar:
-		query = query.where(OrderLedger.karigar == karigar)
-		count_query = count_query.where(OrderLedger.karigar == karigar)
+		query = query.where(OrderLedger.soi_karigar == karigar)
+		count_query = count_query.where(OrderLedger.soi_karigar == karigar)
 
 	if customer:
 		query = query.where(SalesOrder.customer == customer)
@@ -447,7 +445,7 @@ def get_status_counts(
 		if customer:
 			query = query.where(SalesOrder.customer == customer)
 		if karigar:
-			query = query.where(OrderLedger.karigar == karigar)
+			query = query.where(OrderLedger.soi_karigar == karigar)
 		if item_group:
 			query = query.where(Item.item_group == item_group)
 		if search:
@@ -497,12 +495,12 @@ def get_filter_options() -> Dict[str, List[str]]:
 	# Get unique karigars
 	karigar_query = (
 		frappe.qb.from_(OrderLedger)
-		.select(OrderLedger.karigar)
+		.select(OrderLedger.soi_karigar)
 		.distinct()
 		.where(base_condition)
-		.where(OrderLedger.karigar.isnotnull())
-		.where(OrderLedger.karigar != "")
-		.orderby(OrderLedger.karigar, order=Order.asc)
+		.where(OrderLedger.soi_karigar.isnotnull())
+		.where(OrderLedger.soi_karigar != "")
+		.orderby(OrderLedger.soi_karigar, order=Order.asc)
 	)
 	karigars = [row[0] for row in karigar_query.run() if row[0]]
 
