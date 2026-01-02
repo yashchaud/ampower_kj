@@ -21,26 +21,15 @@ class OrderLedger(Document):
 DEFAULT_PAGE_LIMIT = 100
 KARIGAR_PAGE_LIMIT = 200
 
-# Cache keys
-CACHE_KEY_WORKFLOW_STATUSES = "order_ledger_workflow_statuses"
-CACHE_KEY_WORKFLOW_STAGES = "order_ledger_workflow_stages"
-CACHE_EXPIRY = 3600  
-
 
 # WORKFLOW STATUS HELPERS
 
-def _get_workflow_status_cached() -> List[str]:
+def _get_workflow_statuses() -> List[str]:
 	"""
 	Returns workflow status options from Order Ledger metadata.
-	Cached to avoid repeated DocType queries.
+	Fetches fresh data on every call to ensure accuracy.
 	Internal use only - use get_workflow_status() for public API.
 	"""
-	cache_key = CACHE_KEY_WORKFLOW_STATUSES
-	statuses = frappe.cache().get_value(cache_key)
-
-	if statuses:
-		return statuses
-
 	meta = frappe.get_meta("Order Ledger")
 	field = meta.get_field("order_status")
 
@@ -54,9 +43,6 @@ def _get_workflow_status_cached() -> List[str]:
 
 	if not statuses:
 		frappe.throw("No workflow statuses defined in order_status field")
-
-	# Cache for 1 hour
-	frappe.cache().set_value(cache_key, statuses, expires_in_sec=CACHE_EXPIRY)
 
 	return statuses
 
@@ -75,7 +61,7 @@ def key_to_status(key: str, statuses: Optional[List[str]] = None) -> Optional[st
 	Returns None if not found.
 	"""
 	if statuses is None:
-		statuses = _get_workflow_status_cached()
+		statuses = _get_workflow_statuses()
 
 	for status in statuses:
 		if status_to_key(status) == key:
@@ -87,16 +73,8 @@ def get_workflow_stages() -> List[Dict]:
 	"""
 	Get workflow stages dynamically from Order Ledger DocType metadata.
 	Returns list of stage dictionaries with id, label, key, and status.
-	Uses caching to avoid repeated queries.
 	"""
-	cache_key = CACHE_KEY_WORKFLOW_STAGES
-	stages = frappe.cache().get_value(cache_key)
-
-	if stages:
-		return stages
-
-	# Get statuses (cached)
-	statuses = _get_workflow_status_cached()
+	statuses = _get_workflow_statuses()
 
 	# Build stages dynamically
 	stages = [
@@ -109,9 +87,6 @@ def get_workflow_stages() -> List[Dict]:
 		for idx, status in enumerate(statuses)
 	]
 
-	# Cache for 1 hour
-	frappe.cache().set_value(cache_key, stages, expires_in_sec=CACHE_EXPIRY)
-
 	return stages
 
 
@@ -121,7 +96,7 @@ def get_status_index(status: str, statuses: Optional[List[str]] = None) -> int:
 	Returns -1 if not found.
 	"""
 	if statuses is None:
-		statuses = _get_workflow_status_cached()
+		statuses = _get_workflow_statuses()
 
 	try:
 		return statuses.index(status)
@@ -134,7 +109,7 @@ def get_workflow_progression_map() -> Dict[str, str]:
 	Build workflow progression map dynamically from workflow statuses.
 	Returns a dict mapping current status to next status.
 	"""
-	statuses = _get_workflow_status_cached()
+	statuses = _get_workflow_statuses()
 	return {statuses[i]: statuses[i + 1] for i in range(len(statuses) - 1)}
 
 
@@ -143,7 +118,7 @@ def get_reverse_workflow_map() -> Dict[str, str]:
 	Build reverse workflow progression map dynamically from workflow statuses.
 	Returns a dict mapping current status to previous status.
 	"""
-	statuses = _get_workflow_status_cached()
+	statuses = _get_workflow_statuses()
 	return {statuses[i]: statuses[i - 1] for i in range(1, len(statuses))}
 
 
@@ -180,7 +155,7 @@ def apply_status_transition_effects(
 	if kwargs is None:
 		kwargs = {}
 
-	statuses = _get_workflow_status_cached()
+	statuses = _get_workflow_statuses()
 	current_idx = get_status_index(current_status, statuses)
 	new_idx = get_status_index(new_status, statuses)
 
@@ -254,7 +229,7 @@ def get_workflow_status():
 	Public API to get workflow statuses.
 	Returns workflow status options from Order Ledger metadata.
 	"""
-	return _get_workflow_status_cached()
+	return _get_workflow_statuses()
 
 
 @frappe.whitelist()
@@ -300,7 +275,6 @@ def get_all_order_items(
 			OrderLedger.order_date,
 			OrderLedger.qty,
 			SalesOrder.customer,
-			Item.item_group,
 			Item.image,
 			SalesOrderItem.custom_sales_order_image,
 			OrderLedger.soi_order_weight,
@@ -336,8 +310,8 @@ def get_all_order_items(
 		count_query = count_query.where(SalesOrder.customer == customer)
 
 	if item_group:
-		query = query.where(Item.item_group == item_group)
-		count_query = count_query.where(Item.item_group == item_group)
+		query = query.where(OrderLedger.soi_die == item_group)
+		count_query = count_query.where(OrderLedger.soi_die == item_group)
 
 	# Apply search filter
 	if search:
@@ -375,32 +349,13 @@ def get_all_order_items(
 		order["images"] = images
 		order["item_image"] = images[0] if images else None
 
-		# Prioritize SOI fields over Order Ledger fields when they have values
-		# Use soi_order_weight if available, otherwise fall back to order_weight
-		if order.get("soi_order_weight") is not None:
-			order["item_weight"] = order.get("soi_order_weight")
-		else:
-			order["item_weight"] = order.get("order_weight")
-
-		# Use soi_karigar if available, otherwise fall back to karigar
-		if order.get("soi_karigar") is not None:
-			order["karigar"] = order.get("soi_karigar")
-
-		# Use soi_die if available, otherwise fall back to die/item_group
-		if order.get("soi_die") is not None:
-			order["item_group"] = order.get("soi_die")
-
-		# Use soi_karigar_notes if available, otherwise fall back to karigar_notes
-		if order.get("soi_karigar_notes") is not None:
-			order["karigar_notes"] = order.get("soi_karigar_notes")
-
-		# Use soi_customer_notes if available, otherwise fall back to customer_notes
-		if order.get("soi_customer_notes") is not None:
-			order["customer_notes"] = order.get("soi_customer_notes")
-
-		# Use soi_planned_dispatch_date if available, otherwise fall back to planned_dispatch_date
-		if order.get("soi_planned_dispatch_date") is not None:
-			order["planned_dispatch_date"] = order.get("soi_planned_dispatch_date")
+		# Map SOI fields to frontend field names for consistency
+		order["item_weight"] = order.get("soi_order_weight")
+		order["karigar"] = order.get("soi_karigar")
+		order["item_group"] = order.get("soi_die")
+		order["karigar_notes"] = order.get("soi_karigar_notes")
+		order["customer_notes"] = order.get("soi_customer_notes")
+		order["planned_dispatch_date"] = order.get("soi_planned_dispatch_date")
 
 	return {
 		"data": orders,
@@ -422,7 +377,7 @@ def get_status_counts(
 	from frappe.query_builder import DocType
 	from frappe.query_builder.functions import Count
 
-	statuses = _get_workflow_status_cached()
+	statuses = _get_workflow_statuses()
 	counts = {}
 
 	# Define DocTypes
@@ -447,7 +402,7 @@ def get_status_counts(
 		if karigar:
 			query = query.where(OrderLedger.soi_karigar == karigar)
 		if item_group:
-			query = query.where(Item.item_group == item_group)
+			query = query.where(OrderLedger.soi_die == item_group)
 		if search:
 			search_condition = (
 				(OrderLedger.name.like(f"%{search}%"))
@@ -504,16 +459,15 @@ def get_filter_options() -> Dict[str, List[str]]:
 	)
 	karigars = [row[0] for row in karigar_query.run() if row[0]]
 
-	# Get unique item groups
+	# Get unique item groups (from soi_die field)
 	item_group_query = (
 		frappe.qb.from_(OrderLedger)
-		.left_join(Item).on(OrderLedger.item == Item.name)
-		.select(Item.item_group)
+		.select(OrderLedger.soi_die)
 		.distinct()
 		.where(base_condition)
-		.where(Item.item_group.isnotnull())
-		.where(Item.item_group != "")
-		.orderby(Item.item_group, order=Order.asc)
+		.where(OrderLedger.soi_die.isnotnull())
+		.where(OrderLedger.soi_die != "")
+		.orderby(OrderLedger.soi_die, order=Order.asc)
 	)
 	item_groups = [row[0] for row in item_group_query.run() if row[0]]
 
@@ -545,7 +499,7 @@ def update_item_status(
 		item_names = [item_names]
 
 	# Validate new_status against allowed workflow statuses
-	allowed_statuses = _get_workflow_status_cached()
+	allowed_statuses = _get_workflow_statuses()
 	if new_status not in allowed_statuses:
 		frappe.throw(f"Invalid status '{new_status}'. Must be one of: {', '.join(allowed_statuses)}")
 
@@ -613,15 +567,15 @@ def update_item_status(
 @frappe.whitelist()
 def split_order_item(item_name: str, split_qty) -> Dict:
 	"""
-	Splits an Order Ledger entry into two entries.
-	Example: Entry with 100 qty, user enters 60 → creates 60 qty and 40 qty entries.
+	Splits an Order Ledger entry by updating the original and creating a new entry for the remainder.
+	Example: Entry with 100 qty, user enters 60 → original becomes 60 qty, new entry created with 40 qty.
 
 	Args:
 		item_name: Name of the Order Ledger entry to split
-		split_qty: Quantity for the first split entry (remaining goes to second entry)
+		split_qty: Quantity to keep in the original entry (remaining goes to new entry)
 
 	Returns:
-		dict: Success status and list of new entry names or error message
+		dict: Success status with original and new entry details
 	"""
 	# Get the original order
 	original_order = frappe.get_doc("Order Ledger", item_name)
@@ -645,30 +599,25 @@ def split_order_item(item_name: str, split_qty) -> Dict:
 	# Calculate remaining quantity
 	remaining_qty = total_qty - split_qty
 
-	# Create first entry with split_qty
-	first_entry = frappe.copy_doc(original_order)
-	first_entry.name = None
-	first_entry.qty = split_qty
-	split_note_1 = f"\nSplit from {item_name} ({total_qty} qty) on {frappe.utils.now_datetime()} - Part 1 of 2 ({split_qty} qty)"
-	first_entry.soi_customer_notes = (first_entry.soi_customer_notes or "") + split_note_1
-	first_entry.insert()
+	# Update original order with split quantity
+	original_order.qty = split_qty
+	split_note = f"\nSplit on {frappe.utils.now_datetime()} - kept {split_qty} qty, created new entry with {remaining_qty} qty"
+	original_order.soi_customer_notes = (original_order.soi_customer_notes or "") + split_note
+	original_order.save()
 
-	# Create second entry with remaining_qty
-	second_entry = frappe.copy_doc(original_order)
-	second_entry.name = None
-	second_entry.qty = remaining_qty
-	split_note_2 = f"\nSplit from {item_name} ({total_qty} qty) on {frappe.utils.now_datetime()} - Part 2 of 2 ({remaining_qty} qty)"
-	second_entry.soi_customer_notes = (second_entry.soi_customer_notes or "") + split_note_2
-	second_entry.insert()
-
-	# Delete the original order
-	original_order.delete()
+	# Create new entry with remaining quantity
+	remaining_entry = frappe.copy_doc(original_order)
+	remaining_entry.name = None
+	remaining_entry.qty = remaining_qty
+	split_note_2 = f"\nSplit from {item_name} ({total_qty} qty) on {frappe.utils.now_datetime()} - remainder ({remaining_qty} qty)"
+	remaining_entry.soi_customer_notes = split_note_2
+	remaining_entry.insert()
 
 	return {
 		"success": True,
 		"original_entry": item_name,
-		"new_entries": [first_entry.name, second_entry.name],
-		"first_entry": {"name": first_entry.name, "qty": split_qty},
-		"second_entry": {"name": second_entry.name, "qty": remaining_qty},
-		"message": f"Successfully split {item_name} ({total_qty} qty) into {split_qty} and {remaining_qty}",
+		"new_entry": remaining_entry.name,
+		"original_qty": split_qty,
+		"new_qty": remaining_qty,
+		"message": f"Successfully split {item_name}: kept {split_qty} qty, created new entry with {remaining_qty} qty",
 	}
