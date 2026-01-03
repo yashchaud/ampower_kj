@@ -16,13 +16,20 @@ import frappe
 logger = frappe.logger("ampower_kj.order_ledger_sync", allow_site=True, file_count=50)
 
 
-def create_order_ledger_on_submit(doc, method=None):
+def create_order_ledger_on_submit(doc, method=None) -> None:
 	"""
 	Create Order Ledger entries from Sales Order items on submit.
 	Creates one Order Ledger entry per Sales Order Item (1:1 mapping).
 
 	Uses automatic field copying based on Order Ledger's valid DB columns,
 	ensuring custom fields are included without manual mapping.
+
+	Transaction Handling:
+	- Frappe automatically wraps each request in a DB transaction
+	- If this function raises an exception, Frappe rolls back the entire transaction
+	  (including the Sales Order submission)
+	- Manual rollback via delete_doc() is a best-effort cleanup but may be unreliable
+	  if commits have occurred mid-loop (Frappe's auto-commit behavior)
 
 	Args:
 		doc: Sales Order document
@@ -119,6 +126,7 @@ def create_order_ledger_on_submit(doc, method=None):
 				)
 
 				# Rollback: Delete all Order Ledgers created in this transaction
+				# Note: This is best-effort. Frappe's transaction will ultimately roll back everything.
 				rollback_count = 0
 				for ledger_name in created_ledgers:
 					try:
@@ -127,13 +135,12 @@ def create_order_ledger_on_submit(doc, method=None):
 					except Exception as rollback_error:
 						logger.error(f"Rollback failed for {ledger_name}: {rollback_error}")
 
-				# Log detailed error
-				frappe.log_error(
-					title=f"Order Ledger Creation Failed - SO: {doc.name}",
-					message=f"Failed Item: {item.name} ({item.item_code})\n"
-						f"Created: {created_count}\n"
-						f"Rolled Back: {rollback_count}\n\n"
-						f"{frappe.get_traceback()}"
+				# Log detailed error using logger
+				logger.error(
+					f"Order Ledger creation failed - SO: {doc.name}. "
+					f"Failed Item: {item.name} ({item.item_code}). "
+					f"Created: {created_count}, Rolled Back: {rollback_count}. "
+					f"Traceback: {frappe.get_traceback()}"
 				)
 
 				# STOP Sales Order submission
@@ -152,19 +159,20 @@ def create_order_ledger_on_submit(doc, method=None):
 	except Exception as e:
 		# Log overall failure
 		error_msg = f"Order Ledger creation failed for Sales Order: {doc.name}"
-		logger.error(f"{error_msg}: {str(e)}")
-		frappe.log_error(
-			title=f"Order Ledger Creation Failed - Sales Order: {doc.name}",
-			message=f"Total Items: {len(doc.items)}\n\n{frappe.get_traceback()}"
-		)
+		logger.error(f"{error_msg}: {e}. Total Items: {len(doc.items)}. Traceback: {frappe.get_traceback()}")
 		# Re-raise to prevent Sales Order submission
 		frappe.throw(f"Failed to create Order Ledger entries. Please contact system administrator.")
 
 
-def disable_order_ledger_on_cancel(doc, method=None):
+def disable_order_ledger_on_cancel(doc, method=None) -> None:
 	"""
 	Disable all Order Ledger entries linked to a cancelled Sales Order.
 	Sets disabled=1 for all Order Ledger entries referencing this Sales Order.
+
+	Transaction Handling:
+	- Frappe automatically wraps this in a DB transaction
+	- If this function raises an exception, Frappe rolls back the entire transaction
+	  (including the Sales Order cancellation)
 
 	Args:
 		doc: Sales Order document
@@ -206,6 +214,7 @@ def disable_order_ledger_on_cancel(doc, method=None):
 				)
 
 				# Rollback: Re-enable all Order Ledgers disabled in this transaction
+				# Note: This is best-effort. Frappe's transaction will ultimately roll back everything.
 				rollback_count = 0
 				for disabled_ledger in disabled_ledgers:
 					try:
@@ -214,13 +223,12 @@ def disable_order_ledger_on_cancel(doc, method=None):
 					except Exception as rollback_error:
 						logger.error(f"Rollback failed for {disabled_ledger}: {rollback_error}")
 
-				# Log detailed error
-				frappe.log_error(
-					title=f"Failed to Disable Order Ledger: {ledger_name}",
-					message=f"Sales Order: {doc.name}\n"
-						f"Disabled: {disabled_count}\n"
-						f"Rolled Back: {rollback_count}\n\n"
-						f"{frappe.get_traceback()}"
+				# Log detailed error using logger
+				logger.error(
+					f"Failed to disable Order Ledger: {ledger_name}. "
+					f"Sales Order: {doc.name}. "
+					f"Disabled: {disabled_count}, Rolled Back: {rollback_count}. "
+					f"Traceback: {frappe.get_traceback()}"
 				)
 
 				# STOP Sales Order cancellation
@@ -234,10 +242,6 @@ def disable_order_ledger_on_cancel(doc, method=None):
 	except Exception as e:
 		# Log overall failure
 		error_msg = f"Failed to disable Order Ledgers for Sales Order: {doc.name}"
-		logger.error(f"{error_msg}: {str(e)}")
-		frappe.log_error(
-			title=f"Order Ledger Disable Failed - Sales Order: {doc.name}",
-			message=frappe.get_traceback()
-		)
+		logger.error(f"{error_msg}: {e}. Traceback: {frappe.get_traceback()}")
 		# Re-raise to prevent Sales Order cancellation
 		frappe.throw(f"Failed to disable Order Ledger entries. Please contact system administrator.")

@@ -1,7 +1,12 @@
-from typing import Dict, List, Optional
+# Copyright (c) 2025, Ambibuzz Technologies LLP and Contributors
+# See license.txt
+
 
 import frappe
 from frappe.model.document import Document
+from frappe.query_builder import DocType
+from frappe.query_builder.functions import Count
+from pypika import Order
 
 # Initialize logger for this module
 logger = frappe.logger("ampower_kj.order_ledger", allow_site=True, file_count=50)
@@ -43,49 +48,34 @@ def _get_workflow_statuses() -> list[str]:
 
 		if not meta:
 			error_msg = "Order Ledger DocType metadata not found"
-			frappe.log_error(
-				title="Order Ledger DocType Missing",
-				message=f"{error_msg}\nDocType may have been deleted or metadata is corrupted.",
-			)
+			logger.error(f"{error_msg}. DocType may have been deleted or metadata is corrupted.")
 			frappe.throw(error_msg)
 
 		field = meta.get_field("order_status")
 
 		if not field:
 			error_msg = "Field 'order_status' not found in Order Ledger DocType"
-			frappe.log_error(
-				title="Order Ledger Workflow Field Missing",
-				message=f"{error_msg}\nPlease check Order Ledger DocType configuration.",
-			)
+			logger.error(f"{error_msg}. Please check Order Ledger DocType configuration.")
 			frappe.throw(error_msg)
 
 		if field.fieldtype != "Select":
 			error_msg = f"Field 'order_status' must be of type Select, found {field.fieldtype}"
-			frappe.log_error(
-				title="Order Ledger Workflow Field Invalid Type",
-				message=f"{error_msg}\nExpected: Select\nActual: {field.fieldtype}",
-			)
+			logger.error(f"{error_msg}. Expected: Select, Actual: {field.fieldtype}")
 			frappe.throw(error_msg)
 
 		statuses = [s.strip() for s in field.options.split("\n") if s.strip()]
 
 		if not statuses:
 			error_msg = "No workflow statuses defined in order_status field"
-			frappe.log_error(
-				title="Order Ledger Workflow Statuses Empty",
-				message=f"{error_msg}\nPlease configure workflow statuses in Order Ledger DocType.",
-			)
+			logger.error(f"{error_msg}. Please configure workflow statuses in Order Ledger DocType.")
 			frappe.throw(error_msg)
 
 		logger.debug(f"Retrieved {len(statuses)} workflow statuses")
 		return statuses
 
-	except Exception:
+	except Exception as e:
 		# Unexpected system error (not validation errors which are already raised via frappe.throw())
-		frappe.log_error(
-			title="Workflow Status Retrieval - System Error",
-			message=f"Unexpected error:\n{frappe.get_traceback()}",
-		)
+		logger.error(f"Workflow Status Retrieval - System Error: {e}. Traceback: {frappe.get_traceback()}")
 		frappe.throw("System error retrieving workflow statuses. Please contact administrator.")
 
 
@@ -94,6 +84,8 @@ def status_to_key(status: str) -> str:
 	Convert status label to key (e.g., "Internal QA" -> "internal_qa").
 	Centralized to avoid duplication.
 	"""
+	if not status:
+		return ""
 	return status.lower().replace(" ", "_")
 
 
@@ -199,11 +191,13 @@ def apply_status_transition_effects(
 		if not order.karigar_actual_receive_date:
 			order.karigar_actual_receive_date = today
 
-		# Handle weight and notes for receiving
-		# Note: weight_per_unit is handled separately in the bulk update section (line 660)
 		# Only set karigar_received_weight here if it's a direct weight value (not per-unit calculation)
 		if kwargs.get("karigar_received_weight") and not kwargs.get("weight_per_unit"):
-			order.karigar_received_weight = float(kwargs["karigar_received_weight"])
+			try:
+				order.karigar_received_weight = float(kwargs["karigar_received_weight"])
+			except (ValueError, TypeError) as e:
+				logger.warning(f"Invalid karigar_received_weight value: {kwargs['karigar_received_weight']}")
+				frappe.throw("Invalid received weight value. Please enter a valid number.")
 
 		if kwargs.get("receive_notes"):
 			order.soi_karigar_notes = kwargs["receive_notes"]
@@ -222,8 +216,13 @@ def apply_status_transition_effects(
 			order.actual_dispatch_date = today
 
 		# Handle dispatch weight and QA notes
+		# Two modes: direct weight or bulk weight_per_unit (handled at lines 637-640)
 		if kwargs.get("dispatch_weight") and not kwargs.get("weight_per_unit"):
-			order.dispatch_weight = float(kwargs["dispatch_weight"])
+			try:
+				order.dispatch_weight = float(kwargs["dispatch_weight"])
+			except (ValueError, TypeError) as e:
+				logger.warning(f"Invalid dispatch_weight value: {kwargs['dispatch_weight']}")
+				frappe.throw("Invalid dispatch weight value. Please enter a valid number.")
 
 		if kwargs.get("dispatch_notes"):
 			order.qa_notes = kwargs["dispatch_notes"]
@@ -301,10 +300,8 @@ def get_all_order_items(
 		# Sanitize search input
 		if search:
 			search = str(search)[:MAX_SEARCH_LENGTH]  # Limit length to prevent performance issues
-
-		from frappe.query_builder import DocType
-		from frappe.query_builder.functions import Count
-		from pypika import Order
+			# Escape SQL wildcards to prevent injection (% and _ are treated as literals)
+			search = frappe.db.escape(search, percent=False).strip("'")  # Remove quotes added by escape()
 
 		# Define DocTypes
 		OrderLedger = DocType("Order Ledger")
@@ -358,6 +355,11 @@ def get_all_order_items(
 		# Convert parameters
 		page = int(page) if page else 1
 		page_size = int(page_size) if page_size else 10
+	
+		# Validate page_size to prevent OOM
+		MAX_PAGE_SIZE = 1000
+		if page_size > MAX_PAGE_SIZE:
+			frappe.throw(f"Page size cannot exceed {MAX_PAGE_SIZE} items.")
 
 		# Build base query with joins
 		query = (
@@ -477,11 +479,12 @@ def get_all_order_items(
 		logger.warning(f"Permission denied in get_all_order_items for user {frappe.session.user}")
 		raise
 
-	except Exception:
-		# System error - log once to Error Log (includes traceback)
-		frappe.log_error(
-			title="get_all_order_items API Failed",
-			message=f"Parameters: page={page}, page_size={page_size}, return_counts_only={return_counts_only}\n\n{frappe.get_traceback()}",
+	except Exception as e:
+		# System error - log once (includes traceback)
+		logger.error(
+			f"get_all_order_items API Failed: {e}. "
+			f"Parameters: page={page}, page_size={page_size}, return_counts_only={return_counts_only}. "
+			f"Traceback: {frappe.get_traceback()}"
 		)
 
 		# Return empty but valid response structure
@@ -514,9 +517,6 @@ def get_filter_options() -> dict[str, list[str]]:
 	"""
 	try:
 		logger.debug("get_filter_options called")
-
-		from frappe.query_builder import DocType
-		from pypika import Order
 
 		# Define DocTypes
 		OrderLedger = DocType("Order Ledger")
@@ -572,9 +572,9 @@ def get_filter_options() -> dict[str, list[str]]:
 		logger.warning(f"Permission denied in get_filter_options for user {frappe.session.user}")
 		raise
 
-	except Exception:
-		# System error - log once to Error Log (includes traceback)
-		frappe.log_error(title="get_filter_options API Failed", message=frappe.get_traceback())
+	except Exception as e:
+		# System error - log once (includes traceback)
+		logger.error(f"get_filter_options API Failed: {e}. Traceback: {frappe.get_traceback()}")
 		# Return empty lists - UI will still work
 		return {"customers": [], "karigars": [], "item_groups": []}
 
@@ -650,10 +650,15 @@ def update_item_status(
 				current_status = order.get("order_status")
 
 				# Apply bulk weight update if weight_per_unit and weight_field provided
+				# This multiplies weight_per_unit by each order's qty to calculate total weight
 				if weight_per_unit and weight_field:
-					entry_qty = float(order.qty) if order.qty else 1
-					entry_weight = entry_qty * weight_per_unit
-					setattr(order, weight_field, entry_weight)
+					try:
+						entry_qty = float(order.qty) if order.qty else 1
+						entry_weight = entry_qty * weight_per_unit
+						setattr(order, weight_field, entry_weight)
+					except (ValueError, TypeError) as e:
+						logger.warning(f"Invalid qty for weight calculation in {item_name}: {order.qty}")
+						# Skip weight update for this entry but continue processing
 
 				# Update status
 				order.order_status = new_status
@@ -682,10 +687,11 @@ def update_item_status(
 
 			except Exception as e:
 				# System error - log it
-				logger.error(f"Failed to update {item_name}: {e!s}")
-				frappe.log_error(
-					title=f"Order Status Update Failed: {item_name}",
-					message=f"New Status: {new_status}\n\n{frappe.get_traceback()}",
+				logger.error(
+					f"Order Status Update Failed: {item_name}. "
+					f"New Status: {new_status}. "
+					f"Error: {e}. "
+					f"Traceback: {frappe.get_traceback()}"
 				)
 				results.append({"name": item_name, "success": False, "error": str(e)})
 
@@ -712,10 +718,10 @@ def update_item_status(
 
 	except Exception as e:
 		# Unexpected system error before loop
-		logger.error(f"System error in update_item_status: {e!s}")
-		frappe.log_error(
-			title="update_item_status API Failed",
-			message=f"New Status: {new_status}\n\n{frappe.get_traceback()}",
+		logger.error(
+			f"update_item_status API Failed: {e}. "
+			f"New Status: {new_status}. "
+			f"Traceback: {frappe.get_traceback()}"
 		)
 		frappe.throw("Failed to update order status. Please contact support.")
 
@@ -762,7 +768,6 @@ def split_order_item(item_name: str, split_qty) -> dict:
 
 		if split_qty >= total_qty:
 			frappe.throw("Split quantity must be less than total quantity.")
-
 		# Calculate remaining quantity
 		remaining_qty = total_qty - split_qty
 
@@ -777,9 +782,9 @@ def split_order_item(item_name: str, split_qty) -> dict:
 		remaining_entry.name = None
 		remaining_entry.qty = remaining_qty
 		split_note_2 = f"\nSplit from {item_name} ({total_qty} qty) on {frappe.utils.now_datetime()} - remainder ({remaining_qty} qty)"
-		remaining_entry.soi_customer_notes = split_note_2
+		# Preserve original notes and append split information
+		remaining_entry.soi_customer_notes = (original_order.soi_customer_notes or "") +";" + split_note_2
 		remaining_entry.insert()
-
 		logger.info(
 			f"Split successful: {item_name} -> {original_order.name} ({split_qty}) + {remaining_entry.name} ({remaining_qty})"
 		)
@@ -809,9 +814,10 @@ def split_order_item(item_name: str, split_qty) -> dict:
 
 	except Exception as e:
 		# Unexpected system error
-		logger.error(f"Error splitting order {item_name}: {e!s}")
-		frappe.log_error(
-			title=f"Order Split Failed: {item_name}",
-			message=f"Split Qty: {split_qty}\n\n{frappe.get_traceback()}",
+		logger.error(
+			f"Order Split Failed: {item_name}. "
+			f"Split Qty: {split_qty}. "
+			f"Error: {e}. "
+			f"Traceback: {frappe.get_traceback()}"
 		)
 		frappe.throw("Failed to split order. Please contact support.")
