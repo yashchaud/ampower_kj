@@ -1,0 +1,658 @@
+{
+  "test_before_save_auto_fill_qty_from_sales_order_item": {
+    "description": "Tests automatic qty population from Sales Order Item when qty is not set",
+    "what_it_covers": "Line 9-13: if self.sales_order_item and not self.qty -> TRUE branch",
+    "why_needed": "Ensures auto-fill works correctly when creating Order Ledger from Sales Order Item",
+    "scenario": "User creates Order Ledger linked to SOI without specifying qty",
+    "priority": "HIGH",
+    "type": "Document Lifecycle"
+  },
+
+  "test_before_save_default_qty_to_one": {
+    "description": "Tests default qty=1 when no qty provided and no Sales Order Item",
+    "what_it_covers": "Line 16-17: if not self.qty -> TRUE branch",
+    "why_needed": "Ensures Order Ledger always has a valid qty (never None/0)",
+    "scenario": "User creates standalone Order Ledger without SOI or qty",
+    "priority": "HIGH",
+    "type": "Document Lifecycle"
+  },
+
+  "test_before_save_qty_already_set_not_overridden": {
+    "description": "Tests that manually set qty is NOT overridden by auto-fill",
+    "what_it_covers": "Line 9: if self.sales_order_item and not self.qty -> FALSE branch",
+    "why_needed": "Prevents data loss when user intentionally sets different qty than SOI",
+    "scenario": "User creates Order Ledger with SOI but wants custom qty (e.g., 50 instead of SOI's 100)",
+    "priority": "MEDIUM",
+    "type": "Document Lifecycle"
+  },
+
+  "test_before_save_soi_has_no_qty": {
+    "description": "Tests default behavior when Sales Order Item exists but has no qty",
+    "what_it_covers": "Line 12: if qty -> FALSE branch (nested in auto-fill)",
+    "why_needed": "Edge case protection for corrupted/incomplete SOI data",
+    "scenario": "Database corruption or manual SOI creation without qty",
+    "priority": "LOW",
+    "type": "Document Lifecycle"
+  },
+
+  "test_get_workflow_statuses": {
+    "description": "Tests normal workflow status retrieval from Order Ledger metadata",
+    "what_it_covers": "Line 27-47: Normal execution path, returns valid status list",
+    "why_needed": "Validates core workflow functionality - basis for all status operations",
+    "scenario": "Any operation that needs workflow statuses (every status transition)",
+    "priority": "CRITICAL",
+    "type": "Workflow Status Helpers"
+  },
+
+  "test_get_workflow_statuses_empty_options": {
+    "description": "Tests exception when order_status field has only whitespace options",
+    "what_it_covers": "Line 44-45: if not statuses -> TRUE branch (exception path)",
+    "why_needed": "Prevents broken workflow with zero valid statuses",
+    "scenario": "Developer clears Select options or saves with '\\n\\n  \\n'",
+    "priority": "HIGH",
+    "type": "Exception Handling"
+  },
+
+  "test_get_workflow_statuses_field_not_found": {
+    "description": "Tests exception when order_status field missing from metadata",
+    "what_it_covers": "Line 36-37: if not field -> TRUE branch (exception path)",
+    "why_needed": "Protects against metadata corruption, provides clear error",
+    "scenario": "Developer deletes field, migration fails, metadata corrupted",
+    "priority": "HIGH",
+    "type": "Exception Handling"
+  },
+
+  "test_get_workflow_statuses_wrong_field_type": {
+    "description": "Tests exception when order_status field exists but wrong type (not Select)",
+    "what_it_covers": "Line 39-40: if field.fieldtype != 'Select' -> TRUE branch",
+    "why_needed": "Type safety - prevents AttributeError on field.options.split()",
+    "scenario": "Developer changes field type from Select to Data during refactoring",
+    "priority": "MEDIUM",
+    "type": "Exception Handling"
+  },
+
+  "test_status_to_key_conversion": {
+    "description": "Tests status label to key conversion (e.g., 'Internal QA' -> 'internal_qa')",
+    "what_it_covers": "Line 50-55: status.lower().replace(' ', '_')",
+    "why_needed": "Validates status-to-key transformation used in API responses",
+    "scenario": "Frontend needs consistent keys for status filtering/routing",
+    "priority": "MEDIUM",
+    "type": "Workflow Status Helpers"
+  },
+
+  "test_key_to_status_conversion": {
+    "description": "Tests key to status label conversion with valid and invalid keys",
+    "what_it_covers": "Line 58-69: Loop through statuses, match key, return None if not found",
+    "why_needed": "Validates key-to-status transformation for stage filters",
+    "scenario": "API receives status key from frontend, needs to convert to label",
+    "priority": "MEDIUM",
+    "type": "Workflow Status Helpers"
+  },
+
+  "test_get_status_index": {
+    "description": "Tests status index retrieval with valid and invalid statuses",
+    "what_it_covers": "Line 93-104: statuses.index() with ValueError handling",
+    "why_needed": "Validates status position lookup for transition logic",
+    "scenario": "Transition logic needs to compare status indices (0→1, 2→3, etc.)",
+    "priority": "HIGH",
+    "type": "Workflow Status Helpers"
+  },
+
+  "test_get_workflow_stages": {
+    "description": "Tests workflow stages generation with id, label, key, status",
+    "what_it_covers": "Line 72-90: Build stages list from workflow statuses",
+    "why_needed": "Validates stage data structure for frontend workflow UI",
+    "scenario": "Frontend renders workflow progress bar/stepper",
+    "priority": "MEDIUM",
+    "type": "Workflow Status Helpers"
+  },
+
+  "test_get_workflow_progression_map": {
+    "description": "Tests forward workflow mapping (current → next status)",
+    "what_it_covers": "Line 107-113: Build {current: next} dict",
+    "why_needed": "Validates next-status lookup for forward transitions",
+    "scenario": "UI shows 'Next' button, needs to know next status",
+    "priority": "MEDIUM",
+    "type": "Workflow Status Helpers"
+  },
+
+  "test_get_reverse_workflow_map": {
+    "description": "Tests reverse workflow mapping (current → previous status)",
+    "what_it_covers": "Line 116-122: Build {current: previous} dict",
+    "why_needed": "Validates previous-status lookup for revert operations",
+    "scenario": "UI shows 'Back' button or admin needs to revert status",
+    "priority": "MEDIUM",
+    "type": "Workflow Status Helpers"
+  },
+
+  "test_get_stage_filters": {
+    "description": "Tests stage filter generation for valid and invalid keys",
+    "what_it_covers": "Line 125-134: if status -> add filter, else skip",
+    "why_needed": "Validates filter generation for status-based queries",
+    "scenario": "Frontend filters orders by workflow stage",
+    "priority": "MEDIUM",
+    "type": "Workflow Status Helpers"
+  },
+
+  "test_transition_unassigned_to_assigned": {
+    "description": "Tests 0→1 transition sets karigar_assignment_date",
+    "what_it_covers": "Line 171-173: if current_idx == 0 and new_idx == 1 -> TRUE",
+    "why_needed": "Validates assignment date is recorded when order assigned to karigar",
+    "scenario": "Admin assigns order to karigar for first time",
+    "priority": "HIGH",
+    "type": "Status Transitions"
+  },
+
+  "test_transition_to_incoming": {
+    "description": "Tests transition to Incoming sets karigar_incoming_date",
+    "what_it_covers": "Line 176-178: if new_idx == 2 -> TRUE",
+    "why_needed": "Validates incoming date is recorded when goods arrive",
+    "scenario": "Karigar sends goods back, marked as Incoming",
+    "priority": "HIGH",
+    "type": "Status Transitions"
+  },
+
+  "test_transition_incoming_to_internal_qa": {
+    "description": "Tests 2→3 transition with weight and notes",
+    "what_it_covers": "Line 181-194: Receive date, weight, notes handling",
+    "why_needed": "Validates goods receiving workflow with weight capture",
+    "scenario": "Warehouse receives goods from karigar, weighs and logs notes",
+    "priority": "HIGH",
+    "type": "Status Transitions"
+  },
+
+  "test_transition_incoming_to_internal_qa_with_custom_date": {
+    "description": "Tests 2→3 transition with manual date override",
+    "what_it_covers": "Line 193-194: if kwargs.get('incoming_to_received') -> TRUE",
+    "why_needed": "Allows backdating when recording past receipts",
+    "scenario": "Admin records yesterday's receipt today with correct date",
+    "priority": "MEDIUM",
+    "type": "Status Transitions"
+  },
+
+  "test_transition_internal_qa_to_pending_delivery": {
+    "description": "Tests 3→4 transition sets is_qa_cleared flag",
+    "what_it_covers": "Line 197-198: if current_idx == 3 and new_idx == 4 -> TRUE",
+    "why_needed": "Validates QA clearance flag for delivery eligibility",
+    "scenario": "QA team clears goods for delivery to customer",
+    "priority": "HIGH",
+    "type": "Status Transitions"
+  },
+
+  "test_transition_pending_delivery_to_delivered": {
+    "description": "Tests 4→5 transition with dispatch details",
+    "what_it_covers": "Line 201-210: Dispatch date, weight, QA notes",
+    "why_needed": "Validates final dispatch workflow with weight verification",
+    "scenario": "Warehouse dispatches goods to customer, records final weight",
+    "priority": "HIGH",
+    "type": "Status Transitions"
+  },
+
+  "test_transition_internal_qa_to_incoming_revert": {
+    "description": "Tests 3→2 reverse transition clears receive data",
+    "what_it_covers": "Line 215-221: if current_idx == 3 and new_idx == 2 -> TRUE",
+    "why_needed": "Validates revert clears weight/date when rejecting receipt",
+    "scenario": "QA team rejects receipt, sends back to Incoming status",
+    "priority": "HIGH",
+    "type": "Status Transitions"
+  },
+
+  "test_transition_with_weight_per_unit_not_applied": {
+    "description": "Tests weight NOT set when weight_per_unit provided (bulk calc takes precedence)",
+    "what_it_covers": "Line 186: if kwargs.get('karigar_received_weight') and not kwargs.get('weight_per_unit') -> FALSE",
+    "why_needed": "Ensures bulk weight calculation isn't overridden by individual weight",
+    "scenario": "Admin uses bulk weight entry for multiple items",
+    "priority": "MEDIUM",
+    "type": "Status Transitions"
+  },
+
+  "test_transition_with_invalid_status_indices": {
+    "description": "Tests transition gracefully skips with invalid statuses",
+    "what_it_covers": "Line 163-164: if current_idx == -1 or new_idx == -1 -> TRUE (early return)",
+    "why_needed": "Prevents crashes when invalid statuses passed to transition logic",
+    "scenario": "Bad data or API call with typo in status name",
+    "priority": "HIGH",
+    "type": "Status Transitions"
+  },
+
+  "test_transition_does_not_override_karigar_assignment_date": {
+    "description": "Tests existing assignment date is NOT overridden on re-transition",
+    "what_it_covers": "Line 172: if not order.karigar_assignment_date -> FALSE branch",
+    "why_needed": "Preserves original assignment date (data integrity)",
+    "scenario": "Order status changes multiple times, assignment date must stay original",
+    "priority": "HIGH",
+    "type": "Date Override Prevention"
+  },
+
+  "test_transition_does_not_override_karigar_incoming_date": {
+    "description": "Tests existing incoming date is NOT overridden",
+    "what_it_covers": "Line 177: if not order.karigar_incoming_date -> FALSE branch",
+    "why_needed": "Preserves original incoming timestamp",
+    "scenario": "Order bounces between statuses, incoming date must stay original",
+    "priority": "HIGH",
+    "type": "Date Override Prevention"
+  },
+
+  "test_transition_does_not_override_karigar_actual_receive_date": {
+    "description": "Tests existing receive date is NOT overridden",
+    "what_it_covers": "Line 182: if not order.karigar_actual_receive_date -> FALSE branch",
+    "why_needed": "Preserves original receive timestamp (unless manual override)",
+    "scenario": "Order re-transitioned to Internal QA, receive date must persist",
+    "priority": "HIGH",
+    "type": "Date Override Prevention"
+  },
+
+  "test_transition_does_not_override_actual_dispatch_date": {
+    "description": "Tests existing dispatch date is NOT overridden",
+    "what_it_covers": "Line 202: if not order.actual_dispatch_date -> FALSE branch",
+    "why_needed": "Preserves original dispatch timestamp",
+    "scenario": "Order status changes after dispatch, dispatch date must persist",
+    "priority": "HIGH",
+    "type": "Date Override Prevention"
+  },
+
+  "test_transition_revert_without_received_to_incoming_param": {
+    "description": "Tests 3→2 revert WITHOUT received_to_incoming parameter",
+    "what_it_covers": "Line 219: if kwargs.get('received_to_incoming') -> FALSE branch",
+    "why_needed": "Documents revert behavior when timestamp param not provided",
+    "scenario": "Admin manually reverts status without providing revert timestamp",
+    "priority": "MEDIUM",
+    "type": "Status Transitions"
+  },
+
+  "test_get_workflow_status_api": {
+    "description": "Tests public API endpoint for workflow statuses",
+    "what_it_covers": "Line 226-232: get_workflow_status() API wrapper",
+    "why_needed": "Validates public API returns correct workflow statuses",
+    "scenario": "Frontend calls API to get available workflow statuses",
+    "priority": "HIGH",
+    "type": "API Endpoints"
+  },
+
+  "test_get_all_order_items_basic": {
+    "description": "Tests basic pagination without filters",
+    "what_it_covers": "Line 236-366: Query execution, pagination logic",
+    "why_needed": "Validates core order listing with pagination",
+    "scenario": "User views order list page 1 with default page size",
+    "priority": "CRITICAL",
+    "type": "API Endpoints"
+  },
+
+  "test_get_all_order_items_with_filters": {
+    "description": "Tests order listing with status filter",
+    "what_it_covers": "Line 300-302: if order_status -> TRUE branch",
+    "why_needed": "Validates status-based filtering",
+    "scenario": "User filters orders by 'Unassigned' status",
+    "priority": "HIGH",
+    "type": "API Endpoints"
+  },
+
+  "test_get_all_order_items_with_search": {
+    "description": "Tests order listing with search term",
+    "what_it_covers": "Line 317-324: if search -> TRUE branch",
+    "why_needed": "Validates text search across name/sales_order/item",
+    "scenario": "User searches for specific order or item code",
+    "priority": "HIGH",
+    "type": "API Endpoints"
+  },
+
+  "test_get_all_order_items_with_multiple_filters": {
+    "description": "Tests combining all filters (status, karigar, customer, item_group, search)",
+    "what_it_covers": "Line 300-324: Multiple filter conditions combined",
+    "why_needed": "Validates complex filtering scenarios",
+    "scenario": "User filters by status AND karigar AND customer simultaneously",
+    "priority": "HIGH",
+    "type": "API Endpoints"
+  },
+
+  "test_get_all_order_items_empty_database": {
+    "description": "Tests query when no orders match filters",
+    "what_it_covers": "Query returns empty result set",
+    "why_needed": "Validates graceful handling of zero results",
+    "scenario": "User filters by non-existent customer",
+    "priority": "MEDIUM",
+    "type": "API Endpoints"
+  },
+
+  "test_get_all_order_items_page_none": {
+    "description": "Tests page=None defaults to 1",
+    "what_it_covers": "Line 251: page = int(page) if page else 1 -> FALSE branch",
+    "why_needed": "API input validation for null/undefined page",
+    "scenario": "Frontend doesn't send page parameter in API call",
+    "priority": "MEDIUM",
+    "type": "API Endpoints"
+  },
+
+  "test_get_all_order_items_page_zero": {
+    "description": "Tests page=0 defaults to 1 (falsy value)",
+    "what_it_covers": "Line 251: Falsy value handling (0 is falsy)",
+    "why_needed": "Edge case - zero should default to 1",
+    "scenario": "Frontend bug sends page=0 instead of page=1",
+    "priority": "MEDIUM",
+    "type": "API Endpoints"
+  },
+
+  "test_get_all_order_items_page_size_none": {
+    "description": "Tests page_size=None defaults to 10",
+    "what_it_covers": "Line 252: page_size = int(page_size) if page_size else 10 -> FALSE",
+    "why_needed": "API input validation for null/undefined page_size",
+    "scenario": "Frontend doesn't send page_size parameter",
+    "priority": "MEDIUM",
+    "type": "API Endpoints"
+  },
+
+  "test_get_all_order_items_no_images": {
+    "description": "Tests image handling when both SOI and Item images are None",
+    "what_it_covers": "Line 345-350: Both if conditions FALSE, images=[], item_image=None",
+    "why_needed": "Prevents frontend crash on missing images",
+    "scenario": "Order for item with no image, SOI has no custom image",
+    "priority": "HIGH",
+    "type": "API Endpoints"
+  },
+
+  "test_get_status_counts": {
+    "description": "Tests count of orders per status without filters",
+    "what_it_covers": "Line 370-418: Loop through statuses, count orders for each",
+    "why_needed": "Validates status count badges in UI",
+    "scenario": "Dashboard shows count of orders in each workflow stage",
+    "priority": "HIGH",
+    "type": "API Endpoints"
+  },
+
+  "test_get_status_counts_with_multiple_filters": {
+    "description": "Tests status counts with filters applied",
+    "what_it_covers": "Line 400-412: Filter conditions in count query",
+    "why_needed": "Validates filtered counts for specific karigar/customer",
+    "scenario": "Karigar dashboard shows counts filtered to their orders only",
+    "priority": "HIGH",
+    "type": "API Endpoints"
+  },
+
+  "test_get_status_counts_empty_results": {
+    "description": "Tests status counts when no orders match filters",
+    "what_it_covers": "All counts return 0",
+    "why_needed": "Validates zero counts for non-existent data",
+    "scenario": "Filter by non-existent customer, all counts should be 0",
+    "priority": "MEDIUM",
+    "type": "API Endpoints"
+  },
+
+  "test_get_filter_options": {
+    "description": "Tests unique filter options retrieval (customers, karigars, item_groups)",
+    "what_it_covers": "Line 422-474: Three separate queries for unique values",
+    "why_needed": "Validates autocomplete/dropdown options for filters",
+    "scenario": "Frontend populates filter dropdowns with available options",
+    "priority": "HIGH",
+    "type": "API Endpoints"
+  },
+
+  "test_get_filter_options_empty_database": {
+    "description": "Tests filter options when database has no valid data",
+    "what_it_covers": "Empty lists returned when no data",
+    "why_needed": "Validates graceful handling of empty database",
+    "scenario": "Fresh installation or all orders disabled",
+    "priority": "LOW",
+    "type": "API Endpoints"
+  },
+
+  "test_update_item_status_single": {
+    "description": "Tests single order status update",
+    "what_it_covers": "Line 478-564: Single item in list, status update, save",
+    "why_needed": "Validates basic status update operation",
+    "scenario": "User clicks status change button for one order",
+    "priority": "CRITICAL",
+    "type": "API Endpoints"
+  },
+
+  "test_update_item_status_bulk": {
+    "description": "Tests bulk status update for multiple orders",
+    "what_it_covers": "Line 529-562: Loop through item_names, update each",
+    "why_needed": "Validates batch operations for efficiency",
+    "scenario": "User selects 10 orders and changes all to 'Assigned'",
+    "priority": "HIGH",
+    "type": "API Endpoints"
+  },
+
+  "test_update_item_status_with_weight_per_unit": {
+    "description": "Tests bulk weight calculation using weight_per_unit",
+    "what_it_covers": "Line 538-541: if weight_per_unit and weight_field -> TRUE, calc weight",
+    "why_needed": "Validates bulk weight entry for efficiency",
+    "scenario": "User enters 2.5g per unit for 5 orders instead of entering weight 5 times",
+    "priority": "HIGH",
+    "type": "API Endpoints"
+  },
+
+  "test_update_item_status_invalid_status": {
+    "description": "Tests exception when invalid status provided",
+    "what_it_covers": "Line 503-504: if new_status not in allowed_statuses -> TRUE (exception)",
+    "why_needed": "API input validation prevents invalid status",
+    "scenario": "API call with typo 'Deliverd' instead of 'Delivered'",
+    "priority": "HIGH",
+    "type": "API Endpoints"
+  },
+
+  "test_update_item_status_invalid_weight": {
+    "description": "Tests exception when negative weight_per_unit provided",
+    "what_it_covers": "Line 510-511: if weight_per_unit < 0 -> TRUE (exception)",
+    "why_needed": "Business rule validation - weight cannot be negative",
+    "scenario": "User accidentally enters -2.5 instead of 2.5",
+    "priority": "HIGH",
+    "type": "API Endpoints"
+  },
+
+  "test_update_item_status_weight_per_unit_type_error": {
+    "description": "Tests exception when non-numeric weight_per_unit provided",
+    "what_it_covers": "Line 512: except TypeError path in weight validation",
+    "why_needed": "Type validation - catches non-numeric strings",
+    "scenario": "User enters 'abc' or 'twenty' instead of numeric value",
+    "priority": "HIGH",
+    "type": "Type Validation"
+  },
+
+  "test_update_item_status_partial_failures": {
+    "description": "Tests bulk update where some succeed and some fail",
+    "what_it_covers": "Line 554-555: except Exception -> append failure result",
+    "why_needed": "Validates resilient batch operations",
+    "scenario": "Updating 3 orders, 2nd doesn't exist, 1st and 3rd should still succeed",
+    "priority": "HIGH",
+    "type": "API Endpoints"
+  },
+
+  "test_update_item_status_permission_check": {
+    "description": "Tests permission enforcement during status update",
+    "what_it_covers": "Line 533: order.check_permission('write')",
+    "why_needed": "Security - ensures user has permission to modify order",
+    "scenario": "Guest user attempts to update order (should fail)",
+    "priority": "HIGH",
+    "type": "API Endpoints"
+  },
+
+  "test_update_item_status_qty_none_uses_default": {
+    "description": "Tests bulk weight calc when order.qty is None",
+    "what_it_covers": "Line 539: float(order.qty) if order.qty else 1 -> FALSE branch",
+    "why_needed": "Defensive code - handles missing qty gracefully",
+    "scenario": "Edge case: Order with qty=None (should default to 1)",
+    "priority": "MEDIUM",
+    "type": "API Endpoints"
+  },
+
+  "test_json_parsing_in_update_item_status": {
+    "description": "Tests JSON string parsing for item_names parameter",
+    "what_it_covers": "Line 495-496: if isinstance(item_names, str) -> TRUE, parse JSON",
+    "why_needed": "API compatibility - accepts both list and JSON string",
+    "scenario": "Frontend sends JSON string instead of array",
+    "priority": "MEDIUM",
+    "type": "API Endpoints"
+  },
+
+  "test_split_order_item_basic": {
+    "description": "Tests basic order splitting (100 qty → 60 + 40)",
+    "what_it_covers": "Line 568-623: Validate qty, update original, create new entry",
+    "why_needed": "Validates order splitting for partial fulfillment",
+    "scenario": "User splits 100-piece order into 60 for immediate production, 40 for later",
+    "priority": "HIGH",
+    "type": "API Endpoints"
+  },
+
+  "test_split_order_item_invalid_qty": {
+    "description": "Tests exceptions for invalid split quantities (<=0, >=total)",
+    "what_it_covers": "Line 593-597: Validation checks for split_qty",
+    "why_needed": "Business rule validation prevents invalid splits",
+    "scenario": "User tries to split 0 qty or split 100 from 100 (leaves nothing)",
+    "priority": "HIGH",
+    "type": "API Endpoints"
+  },
+
+  "test_split_order_item_preserves_fields": {
+    "description": "Tests that all fields are copied from original to split entry",
+    "what_it_covers": "Line 609: frappe.copy_doc() preserves all fields",
+    "why_needed": "Data integrity - split entry inherits status, karigar, weights, etc.",
+    "scenario": "Splitting Assigned order should create new Assigned order with same karigar",
+    "priority": "HIGH",
+    "type": "API Endpoints"
+  },
+
+  "test_split_order_item_permission_check": {
+    "description": "Tests permission enforcement during split operation",
+    "what_it_covers": "Line 582: original_order.check_permission('write')",
+    "why_needed": "Security - ensures user has permission to modify order",
+    "scenario": "Guest user attempts to split order (should fail)",
+    "priority": "HIGH",
+    "type": "API Endpoints"
+  },
+
+  "test_split_order_item_non_numeric_split_qty": {
+    "description": "Tests exception when split_qty is non-numeric string",
+    "what_it_covers": "Line 587: except ValueError path in split_qty validation",
+    "why_needed": "Type validation - catches invalid input",
+    "scenario": "User enters 'fifty' instead of 50",
+    "priority": "HIGH",
+    "type": "Type Validation"
+  },
+
+  "test_split_order_item_none_split_qty": {
+    "description": "Tests exception when split_qty is None",
+    "what_it_covers": "Line 587: except TypeError path in split_qty validation",
+    "why_needed": "Type validation - handles null/undefined from frontend",
+    "scenario": "Frontend sends null instead of number",
+    "priority": "HIGH",
+    "type": "Type Validation"
+  },
+
+  "test_split_order_item_qty_none_uses_default": {
+    "description": "Tests split when original order qty is None",
+    "what_it_covers": "Line 590: float(original_order.qty or 1) -> FALSE branch",
+    "why_needed": "Defensive code - handles missing qty gracefully",
+    "scenario": "Edge case: Order with qty=None (defaults to 1, split 0.6 → 0.6 + 0.4)",
+    "priority": "MEDIUM",
+    "type": "API Endpoints"
+  },
+
+  "test_split_order_item_decimal_quantities": {
+    "description": "Tests split with decimal/float quantities",
+    "what_it_covers": "Float handling in split calculations",
+    "why_needed": "Real-world scenario - jewelry weights are decimals",
+    "scenario": "Split 100.75 grams into 60.25 and 40.5",
+    "priority": "MEDIUM",
+    "type": "API Endpoints"
+  },
+
+  "test_split_order_item_deleted_after_fetch": {
+    "description": "Tests split operation when order deleted between fetch and split",
+    "what_it_covers": "Concurrent modification scenario - order no longer exists",
+    "why_needed": "Race condition handling",
+    "scenario": "Two users open same order, one deletes while other tries to split",
+    "priority": "MEDIUM",
+    "type": "Edge Cases"
+  },
+
+  "test_disabled_orders_excluded_from_queries": {
+    "description": "Tests that disabled orders are excluded from API queries",
+    "what_it_covers": "Line 287, 296, etc: .where(OrderLedger.disabled != 1)",
+    "why_needed": "Business rule - disabled orders should be hidden",
+    "scenario": "Admin disables order, it should disappear from listings",
+    "priority": "HIGH",
+    "type": "Edge Cases"
+  },
+
+  "test_data_enrichment_in_get_all_order_items": {
+    "description": "Tests that API response includes all required frontend fields",
+    "what_it_covers": "Line 336-358: Field mapping and enrichment",
+    "why_needed": "Frontend compatibility - provides all needed data",
+    "scenario": "Frontend displays order list with images, weights, etc.",
+    "priority": "HIGH",
+    "type": "API Endpoints"
+  },
+
+  "test_soi_field_mapping": {
+    "description": "Tests SOI fields are correctly mapped to frontend field names",
+    "what_it_covers": "Line 352-358: soi_order_weight → item_weight, soi_karigar → karigar, etc.",
+    "why_needed": "Frontend compatibility - consistent field naming",
+    "scenario": "Frontend accesses order.item_weight instead of order.soi_order_weight",
+    "priority": "MEDIUM",
+    "type": "API Endpoints"
+  },
+
+  "test_consistency_across_calls": {
+    "description": "Tests workflow statuses are consistent across multiple calls",
+    "what_it_covers": "Multiple calls to _get_workflow_statuses() return same result",
+    "why_needed": "Validates caching/consistency of metadata reads",
+    "scenario": "Multiple API calls should return same workflow structure",
+    "priority": "LOW",
+    "type": "Consistency"
+  },
+
+  "test_pagination_total_pages_calculation": {
+    "description": "Tests total_pages calculation in pagination",
+    "what_it_covers": "Line 365: (total_count + page_size - 1) // page_size",
+    "why_needed": "Validates pagination math for frontend page controls",
+    "scenario": "7 items with page_size=3 should show 3 pages",
+    "priority": "MEDIUM",
+    "type": "API Endpoints"
+  },
+
+  "test_pagination_last_page_partial": {
+    "description": "Tests pagination when last page has fewer items than page_size",
+    "what_it_covers": "Pagination with partial last page",
+    "why_needed": "Edge case - last page might have 1 item instead of 10",
+    "scenario": "7 items, page_size=3, page 3 has only 1 item",
+    "priority": "MEDIUM",
+    "type": "API Endpoints"
+  },
+
+  "test_pagination_out_of_bounds": {
+    "description": "Tests requesting page beyond available data",
+    "what_it_covers": "Page number > total_pages",
+    "why_needed": "Validates graceful handling of invalid page",
+    "scenario": "User manually types ?page=100 in URL when only 3 pages exist",
+    "priority": "MEDIUM",
+    "type": "API Endpoints"
+  },
+
+  "test_pagination_with_large_page_size": {
+    "description": "Tests page_size larger than total records",
+    "what_it_covers": "page_size=1000 with only 3 records",
+    "why_needed": "Edge case - all records fit on one page",
+    "scenario": "User selects 'Show All' option with large page_size",
+    "priority": "LOW",
+    "type": "API Endpoints"
+  },
+
+  "test_pagination_boundary_exact_multiple": {
+    "description": "Tests pagination when total records is exact multiple of page_size",
+    "what_it_covers": "9 records, page_size=3 → exactly 3 pages",
+    "why_needed": "Edge case - no partial last page",
+    "scenario": "Perfect division, last page has exactly page_size items",
+    "priority": "LOW",
+    "type": "API Endpoints"
+  },
+
+  "test_update_item_status_with_modified_order": {
+    "description": "Tests update when order modified between read and write",
+    "what_it_covers": "Concurrent modification scenario",
+    "why_needed": "Validates behavior under concurrent updates",
+    "scenario": "Two users update same order simultaneously",
+    "priority": "MEDIUM",
+    "type": "Concurrent Modifications"
+  }
+}

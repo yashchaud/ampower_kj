@@ -12,54 +12,153 @@ Frappe's doc_events system appends handlers rather than replacing them.
 
 import frappe
 
+# Initialize logger for this module
+logger = frappe.logger("ampower_kj.order_ledger_sync", allow_site=True, file_count=50)
+
 
 def create_order_ledger_on_submit(doc, method=None):
 	"""
 	Create Order Ledger entries from Sales Order items on submit.
 	Creates one Order Ledger entry per Sales Order Item (1:1 mapping).
 
+	Uses automatic field copying based on Order Ledger's valid DB columns,
+	ensuring custom fields are included without manual mapping.
+
 	Args:
 		doc: Sales Order document
 		method: Event method name (passed by Frappe, e.g., 'on_submit')
+
+	Raises:
+		Exception: If Order Ledger creation fails, preventing Sales Order submission
 	"""
-	
-	for item in doc.items:
-		existing = frappe.db.exists("Order Ledger", {"sales_order_item": item.name})
-		if existing:
-			continue
 
-		# Copy the entire Sales Order Item
-		order_ledger_copy = frappe.copy_doc(item)
+	# System fields to exclude from auto-copy
+	EXCLUDE_FIELDS = {
+		"name", "owner", "creation", "modified", "modified_by",
+		"parent", "parentfield", "parenttype", "idx", "docstatus", "doctype",
+		# Fields we set manually with different logic
+		"item", "item_code", "sales_order", "sales_order_item", "order_date", "order_status"
+	}
 
-		# Get Order Ledger DocType meta to know valid fields
-		target_meta = frappe.get_meta("Order Ledger")
-		valid_fields = {df.fieldname for df in target_meta.fields}
+	try:
+		logger.info(f"Starting Order Ledger creation for Sales Order: {doc.name} ({len(doc.items)} items)")
 
-		# Create new document with only compatible fields
-		order_ledger_dict = {"doctype": "Order Ledger"}
+		# Get fresh Order Ledger meta to include recently added custom fields
+		ol_meta = frappe.get_meta("Order Ledger", cached=False)
 
-		# Copy ALL fields that exist in both DocTypes automatically
-		for fieldname in valid_fields:
-			if hasattr(order_ledger_copy, fieldname):
-				value = order_ledger_copy.get(fieldname)
-				if value is not None:
-					order_ledger_dict[fieldname] = value
-		# Override ONLY fields that need different values or come from parent Sales Order
-		order_ledger_dict["sales_order"] = doc.name
-		order_ledger_dict["sales_order_item"] = item.name
-		order_ledger_dict["customer_notes"] = doc.get("customer_notes")
-		order_ledger_dict["order_type"] = doc.get("order_type")
-		order_ledger_dict["order_date"] = doc.transaction_date
+		created_ledgers = []  # Track created entries for rollback
+		created_count = 0
+		skipped_count = 0
 
-		order_ledger_dict["order_status"] = "Unassigned"
+		for item in doc.items:
+			try:
+				# Check if Order Ledger already exists for this item
+				existing = frappe.db.exists("Order Ledger", {"sales_order_item": item.name})
+				if existing:
+					skipped_count += 1
+					continue
 
-		order_ledger_dict["item"] = item.item_code
-		order_ledger_dict["order_weight"] = item.get("soi_order_weight") or item.get("weight_per_unit")
-		order_ledger_dict["planned_dispatch_date"] = item.get("delivery_date")
+				# Get Sales Order Item as dict (includes all custom fields)
+				item_dict = item.as_dict()
 
-		# Create and insert
-		order_ledger = frappe.get_doc(order_ledger_dict)
-		order_ledger.insert(ignore_permissions=True)
+				# Create base dict for Order Ledger with doctype
+				ledger_dict = {"doctype": "Order Ledger"}
+
+				# AUTO COPY: Iterate Order Ledger fields and copy from item dict or parent doc
+				# This ensures we only set fields that exist in Order Ledger's schema
+				for df in ol_meta.fields:
+					fieldname = df.fieldname
+
+					# Skip system/child-table fields and manually handled fields
+					if fieldname in EXCLUDE_FIELDS:
+						continue
+
+					# Try to get value from item dict first, then from parent Sales Order
+					if fieldname in item_dict and item_dict[fieldname] is not None:
+						ledger_dict[fieldname] = item_dict[fieldname]
+					elif doc.get(fieldname) is not None:
+						ledger_dict[fieldname] = doc.get(fieldname)
+
+				# Set/override required relationship fields (manual mapping)
+				ledger_dict["sales_order"] = doc.name
+				ledger_dict["sales_order_item"] = item.name
+				ledger_dict["item"] = item.item_code  # Maps SOI.item_code -> OL.item
+				ledger_dict["order_date"] = doc.transaction_date
+
+				# Safely set order_status default if not already set
+				if not ledger_dict.get("order_status") and ol_meta.has_field("order_status"):
+					df = ol_meta.get_field("order_status")
+					if df.fieldtype == "Select" and df.options:
+						valid_options = [o.strip() for o in df.options.split("\n") if o.strip()]
+						if "Unassigned" in valid_options:
+							ledger_dict["order_status"] = "Unassigned"
+						elif valid_options:
+							ledger_dict["order_status"] = valid_options[0]
+
+				# Debug log for custom field verification
+				logger.debug(
+					f"Creating Order Ledger for item {item.name}: "
+					f"soi_die={item_dict.get('soi_die')} -> {ledger_dict.get('soi_die')}"
+				)
+
+				# Create doc from dict and insert
+				order_ledger = frappe.get_doc(ledger_dict)
+				order_ledger.insert(ignore_permissions=True)
+
+				# Track for potential rollback
+				created_ledgers.append(order_ledger.name)
+				created_count += 1
+
+			except Exception as item_error:
+				# CRITICAL FAILURE - Rollback all created Order Ledgers
+				logger.error(
+					f"CRITICAL: Order Ledger creation failed for SO Item {item.name}. "
+					f"Item Code: {item.item_code}, Item Name: {item.get('item_name', 'N/A')}. "
+					f"Error: {str(item_error)}. "
+					f"Rolling back {len(created_ledgers)} created entries."
+				)
+
+				# Rollback: Delete all Order Ledgers created in this transaction
+				rollback_count = 0
+				for ledger_name in created_ledgers:
+					try:
+						frappe.delete_doc("Order Ledger", ledger_name, force=True, ignore_permissions=True)
+						rollback_count += 1
+					except Exception as rollback_error:
+						logger.error(f"Rollback failed for {ledger_name}: {rollback_error}")
+
+				# Log detailed error
+				frappe.log_error(
+					title=f"Order Ledger Creation Failed - SO: {doc.name}",
+					message=f"Failed Item: {item.name} ({item.item_code})\n"
+						f"Created: {created_count}\n"
+						f"Rolled Back: {rollback_count}\n\n"
+						f"{frappe.get_traceback()}"
+				)
+
+				# STOP Sales Order submission
+				frappe.throw(
+					f"Failed to create Order Ledger for item '{item.item_code}'. "
+					f"Sales Order submission cancelled. Please fix the error and try again."
+				)
+
+		# Log summary
+		if created_count > 0 or skipped_count > 0:
+			logger.info(
+				f"Order Ledger creation complete for SO {doc.name}: "
+				f"{created_count} created, {skipped_count} skipped"
+			)
+
+	except Exception as e:
+		# Log overall failure
+		error_msg = f"Order Ledger creation failed for Sales Order: {doc.name}"
+		logger.error(f"{error_msg}: {str(e)}")
+		frappe.log_error(
+			title=f"Order Ledger Creation Failed - Sales Order: {doc.name}",
+			message=f"Total Items: {len(doc.items)}\n\n{frappe.get_traceback()}"
+		)
+		# Re-raise to prevent Sales Order submission
+		frappe.throw(f"Failed to create Order Ledger entries. Please contact system administrator.")
 
 
 def disable_order_ledger_on_cancel(doc, method=None):
@@ -70,12 +169,75 @@ def disable_order_ledger_on_cancel(doc, method=None):
 	Args:
 		doc: Sales Order document
 		method: Event method name (passed by Frappe, e.g., 'on_cancel')
-	"""
-	order_ledgers = frappe.get_all(
-		"Order Ledger",
-		filters={"sales_order": doc.name},
-		pluck="name"
-	)
 
-	for ledger_name in order_ledgers:
-		frappe.db.set_value("Order Ledger", ledger_name, "disabled", 1)
+	Raises:
+		Exception: If disabling Order Ledgers fails, preventing Sales Order cancellation
+	"""
+
+	try:
+		logger.info(f"Disabling Order Ledgers for cancelled Sales Order: {doc.name}")
+
+		# Get all Order Ledger entries for this Sales Order
+		order_ledgers = frappe.get_all(
+			"Order Ledger",
+			filters={"sales_order": doc.name},
+			pluck="name"
+		)
+
+		if not order_ledgers:
+			logger.warning(f"No Order Ledger entries found for Sales Order: {doc.name}")
+			return
+
+		# Disable all Order Ledger entries
+		disabled_ledgers = []  # Track for rollback
+		disabled_count = 0
+
+		for ledger_name in order_ledgers:
+			try:
+				frappe.db.set_value("Order Ledger", ledger_name, "disabled", 1)
+				disabled_ledgers.append(ledger_name)
+				disabled_count += 1
+
+			except Exception as ledger_error:
+				# CRITICAL FAILURE - Rollback all disabled entries
+				logger.error(
+					f"CRITICAL: Failed to disable Order Ledger {ledger_name}. "
+					f"Rolling back {len(disabled_ledgers)} disabled entries."
+				)
+
+				# Rollback: Re-enable all Order Ledgers disabled in this transaction
+				rollback_count = 0
+				for disabled_ledger in disabled_ledgers:
+					try:
+						frappe.db.set_value("Order Ledger", disabled_ledger, "disabled", 0)
+						rollback_count += 1
+					except Exception as rollback_error:
+						logger.error(f"Rollback failed for {disabled_ledger}: {rollback_error}")
+
+				# Log detailed error
+				frappe.log_error(
+					title=f"Failed to Disable Order Ledger: {ledger_name}",
+					message=f"Sales Order: {doc.name}\n"
+						f"Disabled: {disabled_count}\n"
+						f"Rolled Back: {rollback_count}\n\n"
+						f"{frappe.get_traceback()}"
+				)
+
+				# STOP Sales Order cancellation
+				frappe.throw(
+					f"Failed to disable Order Ledger entries. "
+					f"Sales Order cancellation prevented. Please contact system administrator."
+				)
+
+		logger.info(f"Disabled {disabled_count} Order Ledger entries for Sales Order: {doc.name}")
+
+	except Exception as e:
+		# Log overall failure
+		error_msg = f"Failed to disable Order Ledgers for Sales Order: {doc.name}"
+		logger.error(f"{error_msg}: {str(e)}")
+		frappe.log_error(
+			title=f"Order Ledger Disable Failed - Sales Order: {doc.name}",
+			message=frappe.get_traceback()
+		)
+		# Re-raise to prevent Sales Order cancellation
+		frappe.throw(f"Failed to disable Order Ledger entries. Please contact system administrator.")

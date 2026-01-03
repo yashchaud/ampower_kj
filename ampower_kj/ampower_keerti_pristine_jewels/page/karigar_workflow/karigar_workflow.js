@@ -33,6 +33,39 @@ frappe.pages["karigar-workflow"].on_page_load = function (wrapper) {
 		total_pages: 0,
 	};
 
+	// ========== CONSTANTS ==========
+	const CONSTANTS = {
+		DROPDOWN_MAX_OPTIONS: 10,
+		FILTER_DEBOUNCE_MS: 500,
+		SEARCH_RESET_DELAY_MS: 100,
+		PAGINATION_MAX_VISIBLE_PAGES: 5,
+		MAX_REASONABLE_WEIGHT: 1000000, // grams
+	};
+
+	// ========== HELPER FUNCTIONS ==========
+
+	// Check if transition requires weight entry (index-based, not hardcoded names)
+	page.requires_weight_entry = function (from_index, to_index) {
+		// Incoming (2) → Internal QA (3)
+		if (from_index === 2 && to_index === 3) return true;
+		// Pending Delivery (4) → Delivered (5)
+		if (from_index === 4 && to_index === 5) return true;
+		return false;
+	};
+
+	// Check if reverse transition needs timestamp parameter
+	page.needs_revert_timestamp = function (from_index, to_index) {
+		// Internal QA (3) → Incoming (2)
+		return from_index === 3 && to_index === 2;
+	};
+
+	// Get weight field type for a transition
+	page.get_weight_type = function (from_index, to_index) {
+		if (from_index === 2 && to_index === 3) return "received";
+		if (from_index === 4 && to_index === 5) return "dispatch";
+		return null;
+	};
+
 	// Helper function to get stage info (reduces code duplication)
 	page.get_stage_info = function () {
 		const current_stage = page.workflow_data.current_stage;
@@ -42,15 +75,17 @@ frappe.pages["karigar-workflow"].on_page_load = function (wrapper) {
 			current: current_stage,
 			current_index: current_index,
 			prev: current_index > 0 ? stages[current_index - 1].name : null,
+			prev_index: current_index > 0 ? current_index - 1 : -1,
 			next: current_index < stages.length - 1 ? stages[current_index + 1].name : null,
+			next_index: current_index < stages.length - 1 ? current_index + 1 : -1,
 			is_first: current_index === 0,
 			is_last: current_index === stages.length - 1,
 		};
 	};
+
 	page.format_item_display = function (order) {
 		const item_code = order.item_code || "";
 		const item_name = order.item || "";
-		console.log("Formatting item display:", item_code, item_name, order);
 
 		if (!item_code) {
 			return "N/A";
@@ -80,20 +115,35 @@ frappe.pages["karigar-workflow"].on_page_load = function (wrapper) {
 			callback: function (r) {
 				if (r.message) {
 					const failed = r.message.filter((item) => !item.success);
+					const succeeded = r.message.filter((item) => item.success);
+
 					if (failed.length > 0) {
-						frappe.msgprint(
-							__("Some items failed to update: {0}", [
-								failed.map((f) => f.error).join(", "),
+						const error_details = failed.map((f) => `${f.name}: ${f.error}`).join("<br>");
+						frappe.msgprint({
+							title: __("Update Status"),
+							indicator: failed.length === r.message.length ? "red" : "orange",
+							message: __("{0} succeeded, {1} failed:<br><br>{2}", [
+								succeeded.length,
+								failed.length,
+								error_details
 							])
-						);
+						});
+					} else if (succeeded.length > 0) {
+						frappe.show_alert({
+							message: __("{0} item(s) updated successfully", [succeeded.length]),
+							indicator: "green"
+						}, 3);
 					}
 				}
 				if (callback) callback(r);
 			},
 			error: function (err) {
-				frappe.msgprint(
-					__("Error updating status: {0}", [err.message || "Unknown error"])
-				);
+				console.error("Order status update failed:", err);
+				frappe.msgprint({
+					title: __("Update Failed"),
+					indicator: "red",
+					message: __("Error updating status: {0}", [err.message || "Unknown error. Please try again or contact support."])
+				});
 			},
 		});
 	};
@@ -221,8 +271,10 @@ frappe.pages["karigar-workflow"].on_page_load = function (wrapper) {
 
 			if (filtered_options.length > 0) {
 				let dropdown_html = "";
-				filtered_options.slice(0, 10).forEach((option) => {
-					dropdown_html += `<div class="dropdown-option" data-value="${option}">${option}</div>`;
+				filtered_options.slice(0, CONSTANTS.DROPDOWN_MAX_OPTIONS).forEach((option) => {
+					// Escape HTML to prevent XSS
+					const escaped_option = $('<div>').text(option).html();
+					dropdown_html += `<div class="dropdown-option" data-value="${escaped_option}">${escaped_option}</div>`;
 				});
 				$dropdown.html(dropdown_html).show();
 			} else {
@@ -238,7 +290,7 @@ frappe.pages["karigar-workflow"].on_page_load = function (wrapper) {
 		// Track if we're currently searching to prevent multiple calls
 		let is_searching = false;
 
-		// Add filter change handlers with debounce (wait 500ms after user stops typing)
+		// Add filter change handlers with debounce
 		page.main.find(".filter-input").on("input", function () {
 			const $this = $(this);
 			showDropdown($this);
@@ -255,8 +307,8 @@ frappe.pages["karigar-workflow"].on_page_load = function (wrapper) {
 				// Reset flag after a short delay
 				setTimeout(function () {
 					is_searching = false;
-				}, 100);
-			}, 500);
+				}, CONSTANTS.SEARCH_RESET_DELAY_MS);
+			}, CONSTANTS.FILTER_DEBOUNCE_MS);
 		});
 
 		// Show dropdown on focus if there's a value
@@ -451,11 +503,10 @@ frappe.pages["karigar-workflow"].on_page_load = function (wrapper) {
 		const current_index = page.workflow_data.stages.findIndex((s) => s.name === current_stage);
 		const is_first_stage = current_index === 0;
 		const is_last_stage = current_index === page.workflow_data.stages.length - 1;
-		const is_delivered = current_stage === "Delivered";
 
-		// Build dropdown menu items based on current stage (hide completely for Delivered)
+		// Build dropdown menu items based on current stage (hide completely for last stage)
 		let action_dropdown_html = "";
-		if (!is_delivered) {
+		if (!is_last_stage) {
 			let dropdown_items = "";
 			if (!is_last_stage) {
 				dropdown_items +=
@@ -534,9 +585,7 @@ frappe.pages["karigar-workflow"].on_page_load = function (wrapper) {
 			}
 
 			// Check if dialog is needed for this transition
-			const needs_dialog =
-				(stage_info.current === "Incoming" && stage_info.next === "Internal QA") ||
-				(stage_info.current === "Pending Delivery" && stage_info.next === "Delivered");
+			const needs_dialog = page.requires_weight_entry(stage_info.current_index, stage_info.next_index);
 
 			if (needs_dialog) {
 				if (selected_count === 1) {
@@ -601,7 +650,7 @@ frappe.pages["karigar-workflow"].on_page_load = function (wrapper) {
 				]),
 				function () {
 					const extra_args = {};
-					if (stage_info.current === "Internal QA" && stage_info.prev === "Incoming") {
+					if (page.needs_revert_timestamp(stage_info.current_index, stage_info.prev_index)) {
 						extra_args.received_to_incoming = frappe.datetime.now_datetime();
 					}
 					page.update_order_status(
@@ -655,9 +704,7 @@ frappe.pages["karigar-workflow"].on_page_load = function (wrapper) {
 			const stage_info = page.get_stage_info();
 
 			// Check if we should open weight entry dialog for specific transitions
-			const should_open_weight_dialog =
-				(stage_info.current === "Incoming" && stage_info.next === "Internal QA") ||
-				(stage_info.current === "Pending Delivery" && stage_info.next === "Delivered");
+			const should_open_weight_dialog = page.requires_weight_entry(stage_info.current_index, stage_info.next_index);
 
 			if (should_open_weight_dialog) {
 				// Open weight entry dialog with navigation
@@ -685,7 +732,7 @@ frappe.pages["karigar-workflow"].on_page_load = function (wrapper) {
 
 		// Generate page number buttons
 		let page_buttons = [];
-		const max_visible = 5;
+		const max_visible = CONSTANTS.PAGINATION_MAX_VISIBLE_PAGES;
 
 		if (total_pages <= max_visible) {
 			for (let i = 1; i <= total_pages; i++) {
@@ -834,10 +881,11 @@ frappe.pages["karigar-workflow"].on_page_load = function (wrapper) {
 			karigar: $("#karigar-filter").val() || "",
 			item_group: $("#item-group-filter").val() || "",
 			search: page.search_field ? page.search_field.get_value() : "",
+			return_counts_only: true,
 		};
 
 		frappe.call({
-			method: "ampower_kj.ampower_keerti_pristine_jewels.doctype.order_ledger.order_ledger.get_status_counts",
+			method: "ampower_kj.ampower_keerti_pristine_jewels.doctype.order_ledger.order_ledger.get_all_order_items",
 			args: filter_args,
 			callback: function (r) {
 				if (r.message) {
@@ -945,9 +993,7 @@ frappe.pages["karigar-workflow"].on_page_load = function (wrapper) {
 			const order_index = parseInt($(this).data("order-index"));
 
 			// Check if we should open weight entry dialog for specific transitions
-			const should_open_weight_dialog =
-				(stage_info.current === "Incoming" && stage_info.next === "Internal QA") ||
-				(stage_info.current === "Pending Delivery" && stage_info.next === "Delivered");
+			const should_open_weight_dialog = page.requires_weight_entry(stage_info.current_index, stage_info.next_index);
 
 			if (should_open_weight_dialog) {
 				page.open_single_entry_dialog_with_nav(page.orders_data, order_index);
@@ -1080,9 +1126,7 @@ frappe.pages["karigar-workflow"].on_page_load = function (wrapper) {
 				}
 
 				// Check if this transition needs the weight dialog
-				const needs_weight_dialog =
-					(stage_info.current === "Incoming" && stage_info.next === "Internal QA") ||
-					(stage_info.current === "Pending Delivery" && stage_info.next === "Delivered");
+				const needs_weight_dialog = page.requires_weight_entry(stage_info.current_index, stage_info.next_index);
 
 				if (needs_weight_dialog) {
 					dialog.hide();
@@ -1121,10 +1165,7 @@ frappe.pages["karigar-workflow"].on_page_load = function (wrapper) {
 					__("Move this order from {0} to {1}?", [stage_info.current, stage_info.prev]),
 					function () {
 						const extra_args = {};
-						if (
-							stage_info.current === "Internal QA" &&
-							stage_info.prev === "Incoming"
-						) {
+						if (page.needs_revert_timestamp(stage_info.current_index, stage_info.prev_index)) {
 							extra_args.received_to_incoming = frappe.datetime.now_datetime();
 						}
 						page.update_order_status(
@@ -1297,30 +1338,31 @@ frappe.pages["karigar-workflow"].on_page_load = function (wrapper) {
 					return;
 				}
 
-				const is_incoming_to_qa =
-					stage_info.current === "Incoming" && stage_info.next === "Internal QA";
-				const is_pending_to_delivered =
-					stage_info.current === "Pending Delivery" && stage_info.next === "Delivered";
+				const weight_type = page.get_weight_type(stage_info.current_index, stage_info.next_index);
 
-				// Both transitions require weight
-				if (is_incoming_to_qa || is_pending_to_delivered) {
-					if (!weight || parseFloat(weight) === 0) {
-						const weight_label = is_pending_to_delivered
-							? "dispatch weight"
-							: "received weight";
-						frappe.msgprint(__("Please enter {0}", [weight_label]));
+				// Transitions that require weight
+				if (weight_type) {
+					// Validate weight input
+					const weightValue = parseFloat(weight);
+					if (!weight || isNaN(weightValue) || weightValue <= 0) {
+						const weight_label = weight_type === "dispatch" ? "dispatch weight" : "received weight";
+						frappe.msgprint(__("Please enter a valid positive {0}", [weight_label]));
+						return;
+					}
+					if (weightValue > CONSTANTS.MAX_REASONABLE_WEIGHT) {
+						frappe.msgprint(__("Weight seems unusually high. Please verify."));
 						return;
 					}
 
 					const extra_args = {};
 
-					if (is_incoming_to_qa) {
-						// Incoming → Internal QA: update received weight
+					if (weight_type === "received") {
+						// Incoming (2) → Internal QA (3): update received weight
 						extra_args.karigar_received_weight = weight;
 						extra_args.receive_notes = notes;
 						extra_args.incoming_to_received = frappe.datetime.now_datetime();
-					} else if (is_pending_to_delivered) {
-						// Pending Delivery → Delivered: update dispatch weight
+					} else if (weight_type === "dispatch") {
+						// Pending Delivery (4) → Delivered (5): update dispatch weight
 						extra_args.dispatch_weight = weight;
 						extra_args.qa_notes = notes;
 					}
@@ -1353,7 +1395,7 @@ frappe.pages["karigar-workflow"].on_page_load = function (wrapper) {
 				}
 
 				const extra_args = {};
-				if (stage_info.current === "Internal QA" && stage_info.prev === "Incoming") {
+				if (page.needs_revert_timestamp(stage_info.current_index, stage_info.prev_index)) {
 					extra_args.received_to_incoming = frappe.datetime.now_datetime();
 				}
 
@@ -1673,13 +1715,12 @@ frappe.pages["karigar-workflow"].on_page_load = function (wrapper) {
 				}
 
 				// Determine which weight field to update based on stage transition
+				const weight_type = page.get_weight_type(stage_info.current_index, stage_info.next_index);
 				let weight_field = null;
-				const is_incoming_to_qa = stage_info.current === "Incoming" && stage_info.next === "Internal QA";
-				const is_pending_to_delivered = stage_info.current === "Pending Delivery" && stage_info.next === "Delivered";
 
-				if (is_incoming_to_qa) {
+				if (weight_type === "received") {
 					weight_field = "karigar_received_weight";
-				} else if (is_pending_to_delivered) {
+				} else if (weight_type === "dispatch") {
 					weight_field = "dispatch_weight";
 				}
 
@@ -1687,11 +1728,17 @@ frappe.pages["karigar-workflow"].on_page_load = function (wrapper) {
 				const weight_input_value = dialog.$wrapper.find(".bulk-weight-input").val();
 				const total_weight = parseFloat(weight_input_value) || 0;
 
-				// Edge case: Check if weight is required but not provided
-				if (weight_field && (!weight_input_value || weight_input_value.trim() === "" || total_weight <= 0)) {
-					const weight_label = is_pending_to_delivered ? "dispatch weight" : "received weight";
-					frappe.msgprint(__("Please enter a valid {0} for bulk update", [weight_label]));
-					return;
+				// Validate weight input if required
+				if (weight_field) {
+					if (!weight_input_value || weight_input_value.trim() === "" || isNaN(total_weight) || total_weight <= 0) {
+						const weight_label = weight_type === "dispatch" ? "dispatch weight" : "received weight";
+						frappe.msgprint(__("Please enter a valid positive {0} for bulk update", [weight_label]));
+						return;
+					}
+					if (total_weight > CONSTANTS.MAX_REASONABLE_WEIGHT) {
+						frappe.msgprint(__("Weight seems unusually high. Please verify."));
+						return;
+					}
 				}
 
 				// Calculate total quantity from all selected orders
