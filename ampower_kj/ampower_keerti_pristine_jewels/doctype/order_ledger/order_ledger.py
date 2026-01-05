@@ -383,6 +383,7 @@ def get_all_order_items(
 				OrderLedger.qty,
 				SalesOrder.customer,
 				Item.image,
+				Item.item_name.as_("item_name"),
 				SalesOrderItem.sales_order_image,
 				OrderLedger.soi_order_weight,
 				OrderLedger.soi_die,
@@ -444,7 +445,18 @@ def get_all_order_items(
 
 		# Enrich data with additional fields for frontend compatibility
 		for order in orders:
+			# Map item fields: item -> item_code
 			order["item_code"] = order.get("item") or ""
+
+			# Ensure item_name exists - fetch from Item master if not in query result
+			item_code = order.get("item")
+			if item_code and not order.get("item_name"):
+				# Fetch item_name from Item master to ensure it's populated
+				item_name = frappe.db.get_value("Item", item_code, "item_name")
+				order["item_name"] = item_name if item_name else item_code
+			elif not order.get("item_name"):
+				order["item_name"] = ""
+
 			order["qty"] = order.get("qty", 1)
 			order["parent"] = order.get("sales_order")
 			order["doctype"] = "Order Ledger"

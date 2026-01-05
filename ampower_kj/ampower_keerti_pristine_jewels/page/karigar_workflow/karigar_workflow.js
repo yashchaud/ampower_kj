@@ -85,7 +85,7 @@ frappe.pages["karigar-workflow"].on_page_load = function (wrapper) {
 
 	page.format_item_display = function (order) {
 		const item_code = order.item_code || "";
-		const item_name = order.item || "";
+		const item_name = order.item_name || "";  // Fetched from Item master, not Sales Order Item
 
 		if (!item_code) {
 			return "N/A";
