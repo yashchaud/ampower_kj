@@ -1228,3 +1228,103 @@ class TestOrderLedger(unittest.TestCase):
 				item_name="NONEXISTENT-ORDER-XYZ",
 				split_qty=50
 			)
+
+	# ========== PO NUMBER FIELD TESTS ==========
+
+	def test_get_all_order_items_includes_po_no_field(self):
+		"""Test that po_no field is always included in API response."""
+		# Create test order
+		order = self.create_test_order_ledger()
+
+		result = get_all_order_items(page=1, page_size=10)
+
+		# Verify response structure
+		self.assertIn("data", result, "Should have data key")
+		self.assertIsInstance(result["data"], list, "data should be a list")
+
+		# If data is returned, verify po_no field exists
+		if len(result["data"]) > 0:
+			first_item = result["data"][0]
+			self.assertIn(
+				"po_no",
+				first_item,
+				"Response should always include po_no field"
+			)
+
+	def test_get_all_order_items_po_no_null_handling(self):
+		"""Test that NULL/empty po_no values are handled correctly."""
+		# Create order with a sales order that has no po_no
+		order = self.create_test_order_ledger()
+
+		result = get_all_order_items(page=1, page_size=10)
+
+		# Verify response structure
+		self.assertIn("data", result, "Should have data key")
+
+		# If data is returned, verify po_no field handling
+		if len(result["data"]) > 0:
+			first_item = result["data"][0]
+			# po_no should be present (not missing from dict)
+			self.assertIn("po_no", first_item, "po_no field should be present")
+			# po_no can be None or empty string for NULL values
+			self.assertIn(
+				first_item.get("po_no"),
+				[None, "", "N/A"],
+				"NULL po_no should be None or empty string"
+			)
+
+	def test_get_all_order_items_po_no_with_value(self):
+		"""Test that po_no field with actual value is returned correctly."""
+		# Update the test sales order to have a po_no value
+		test_po_no = "PO-TEST-2026-001"
+		frappe.db.set_value("Sales Order", self.test_sales_order, "po_no", test_po_no)
+		frappe.db.commit()
+
+		# Create order
+		order = self.create_test_order_ledger()
+
+		result = get_all_order_items(page=1, page_size=10)
+
+		# Verify response
+		self.assertIn("data", result, "Should have data key")
+
+		# Find our test order in the results
+		test_order_data = None
+		for item in result["data"]:
+			if item["name"] == order.name:
+				test_order_data = item
+				break
+
+		# If found, verify po_no value
+		if test_order_data:
+			self.assertEqual(
+				test_order_data.get("po_no"),
+				test_po_no,
+				"po_no should match the Sales Order po_no"
+			)
+
+		# Clean up: reset po_no to None
+		frappe.db.set_value("Sales Order", self.test_sales_order, "po_no", None)
+		frappe.db.commit()
+
+	def test_get_all_order_items_data_enrichment_includes_po_no(self):
+		"""Test data enrichment includes po_no in required fields."""
+		order = self.create_test_order_ledger()
+
+		result = get_all_order_items(page=1, page_size=10)
+
+		# Verify response structure
+		self.assertIn("data", result, "Should have data key")
+		self.assertIsInstance(result["data"], list, "data should be a list")
+
+		# If data is returned, verify po_no is in enriched fields
+		if len(result["data"]) > 0:
+			first_item = result["data"][0]
+			# Verify po_no is included alongside other enriched fields
+			enriched_fields = ["item_code", "parent", "doctype", "images", "po_no"]
+			for field in enriched_fields:
+				self.assertIn(
+					field,
+					first_item,
+					f"Enriched data should include '{field}'"
+				)
