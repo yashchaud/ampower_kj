@@ -385,6 +385,8 @@ def get_all_order_items(
 				Item.image,
 				Item.item_name.as_("item_name"),
 				SalesOrderItem.sales_order_image,
+				SalesOrderItem.description, 
+				SalesOrderItem.texture,
 				OrderLedger.soi_order_weight,
 				OrderLedger.soi_die,
 				OrderLedger.soi_karigar,

@@ -28,7 +28,7 @@ frappe.pages["karigar-workflow"].on_page_load = function (wrapper) {
 	// Pagination state
 	page.pagination = {
 		current_page: 1,
-		page_size: 10,
+		page_size: 50,
 		total: 0,
 		total_pages: 0,
 	};
@@ -216,9 +216,9 @@ frappe.pages["karigar-workflow"].on_page_load = function (wrapper) {
 						</div>
 					</div>
 					<div class="col-12 col-sm-6 col-md-4 col-lg-3 filter-col">
-						<div class="filter-box" data-filter="item-group">
-							<input type="text" class="form-control filter-input" id="item-group-filter" placeholder="Item Group" autocomplete="off">
-							<div class="custom-dropdown" id="item-group-dropdown"></div>
+						<div class="filter-box" data-filter="item-name">
+							<input type="text" class="form-control filter-input" id="item-name-filter" placeholder="Item Name" autocomplete="off">
+							<div class="custom-dropdown" id="item-name-dropdown"></div>
 						</div>
 					</div>
 					<div class="col-12 col-sm-6 col-md-4 col-lg-3 filter-col">
@@ -234,7 +234,7 @@ frappe.pages["karigar-workflow"].on_page_load = function (wrapper) {
 		page.filter_options = {
 			customers: [],
 			karigars: [],
-			item_groups: [],
+			item_names: [],
 		};
 
 		// Debounce timer for filter inputs
@@ -254,8 +254,8 @@ frappe.pages["karigar-workflow"].on_page_load = function (wrapper) {
 				options = page.filter_options.customers || [];
 			} else if (filter_type === "karigar") {
 				options = page.filter_options.karigars || [];
-			} else if (filter_type === "item-group") {
-				options = page.filter_options.item_groups || [];
+			} else if (filter_type === "item-name") {
+				options = page.filter_options.item_names || [];
 			}
 
 			// If input is empty, hide dropdown
@@ -431,7 +431,7 @@ frappe.pages["karigar-workflow"].on_page_load = function (wrapper) {
 		page.main.find("#clear-filters-btn").on("click", function () {
 			page.main.find("#customer-filter").val("");
 			page.main.find("#karigar-filter").val("");
-			page.main.find("#item-group-filter").val("");
+			page.main.find("#item-name-filter").val("");
 			page.refresh_data(true);
 		});
 
@@ -441,7 +441,7 @@ frappe.pages["karigar-workflow"].on_page_load = function (wrapper) {
 
 	// Load filter options for autocomplete
 	page.load_filter_options = function () {
-		// Fetch unique customers, karigars, and item groups from all stages
+		// Fetch unique customers, karigars, and item names from all stages
 		frappe.call({
 			method: "ampower_kj.ampower_keerti_pristine_jewels.doctype.order_ledger.order_ledger.get_filter_options",
 			callback: function (r) {
@@ -449,7 +449,7 @@ frappe.pages["karigar-workflow"].on_page_load = function (wrapper) {
 					// Store options in page object for custom dropdown
 					page.filter_options.customers = r.message.customers || [];
 					page.filter_options.karigars = r.message.karigars || [];
-					page.filter_options.item_groups = r.message.item_groups || [];
+					page.filter_options.item_names = r.message.item_names || [];
 				}
 			},
 		});
@@ -547,7 +547,10 @@ frappe.pages["karigar-workflow"].on_page_load = function (wrapper) {
 								<th style="width: 80px;">S. No.</th>
 								<th>Customer</th>
 								<th>Karigar</th>
+								<th>Item Code</th>
 								<th>Item Details</th>
+								<th>Description</th>
+								<th>Texture</th>
 								<th style="width: 80px;">Qty</th>
 								<th style="width: 120px;">Status</th>
 								<th>Sales Order</th>
@@ -841,7 +844,21 @@ frappe.pages["karigar-workflow"].on_page_load = function (wrapper) {
 		page.orders_data.forEach((order, idx) => {
 			const customer = order.customer || "N/A";
 			const karigar = order.karigar || "N/A";
+			const item_code = order.item_code || "N/A";
 			const item_details = page.format_item_display(order);
+			// Strip HTML tags from description and limit length
+			let description = order.description || "N/A";
+			if (description && description !== "N/A") {
+				// Create a temporary div to strip HTML tags
+				const tempDiv = document.createElement("div");
+				tempDiv.innerHTML = description;
+				description = tempDiv.textContent || tempDiv.innerText || "N/A";
+				// Limit to 100 characters for table display
+				if (description.length > 100) {
+					description = description.substring(0, 100) + "...";
+				}
+			}
+			const texture = order.texture || "N/A";
 			const qty = order.qty || 0;
 			const status = order.order_status || "N/A";
 			const sales_order = order.sales_order || "N/A";
@@ -856,7 +873,10 @@ frappe.pages["karigar-workflow"].on_page_load = function (wrapper) {
 					<td>${serial_number}</td>
 					<td><a href="#" class="customer-link" data-order-index="${idx}" style="color: #2490EF; cursor: pointer;">${customer}</a></td>
 					<td>${karigar}</td>
+					<td>${item_code}</td>
 					<td>${item_details}</td>
+					<td>${description}</td>
+					<td>${texture}</td>
 					<td>${qty}</td>
 					<td>
 						<span class="status-in-progress">${status}</span>
@@ -869,7 +889,7 @@ frappe.pages["karigar-workflow"].on_page_load = function (wrapper) {
 
 		return (
 			rows_html ||
-			'<tr><td colspan="9" style="text-align: center;">No orders found</td></tr>'
+			'<tr><td colspan="12" style="text-align: center;">No orders found</td></tr>'
 		);
 	};
 
@@ -879,7 +899,7 @@ frappe.pages["karigar-workflow"].on_page_load = function (wrapper) {
 		const filter_args = {
 			customer: $("#customer-filter").val() || "",
 			karigar: $("#karigar-filter").val() || "",
-			item_group: $("#item-group-filter").val() || "",
+			item_name: $("#item-name-filter").val() || "",
 			search: page.search_field ? page.search_field.get_value() : "",
 			return_counts_only: true,
 		};
@@ -1016,7 +1036,7 @@ frappe.pages["karigar-workflow"].on_page_load = function (wrapper) {
 			search: page.search_field ? page.search_field.get_value() : "",
 			customer: $("#customer-filter").val() || "",
 			karigar: $("#karigar-filter").val() || "",
-			item_group: $("#item-group-filter").val() || "",
+			item_name: $("#item-name-filter").val() || "",
 		};
 
 		frappe.call({
