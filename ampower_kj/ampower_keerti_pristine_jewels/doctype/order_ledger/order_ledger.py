@@ -382,10 +382,11 @@ def get_all_order_items(
 				OrderLedger.order_date,
 				OrderLedger.qty,
 				SalesOrder.customer,
+				SalesOrder.po_no.as_("po_no"),
 				Item.image,
 				Item.item_name.as_("item_name"),
 				SalesOrderItem.sales_order_image,
-				SalesOrderItem.description, 
+				SalesOrderItem.description,
 				SalesOrderItem.texture,
 				OrderLedger.soi_order_weight,
 				OrderLedger.soi_die,
@@ -463,12 +464,30 @@ def get_all_order_items(
 			order["parent"] = order.get("sales_order")
 			order["doctype"] = "Order Ledger"
 
-			# Build images array (Sales Order Item image + Item master image)
+			# Build images array (Sales Order Item image + Item master image + Item attachments)
 			images = []
 			if order.get("sales_order_image"):
 				images.append(order["sales_order_image"])
 			if order.get("image"):
 				images.append(order["image"])
+
+			# Fetch attachments from Item master
+			item_code = order.get("item")
+			if item_code:
+				attachments = frappe.get_all(
+					"File",
+					filters={
+						"attached_to_doctype": "Item",
+						"attached_to_name": item_code,
+						"is_folder": 0
+					},
+					fields=["file_url"],
+					order_by="creation asc"
+				)
+				for attachment in attachments:
+					if attachment.file_url and attachment.file_url not in images:
+						images.append(attachment.file_url)
+
 			order["images"] = images
 			order["item_image"] = images[0] if images else None
 
@@ -479,6 +498,8 @@ def get_all_order_items(
 			order["karigar_notes"] = order.get("soi_karigar_notes")
 			order["customer_notes"] = order.get("soi_customer_notes")
 			order["planned_dispatch_date"] = order.get("soi_planned_dispatch_date")
+			# Ensure po_no is always present, even if NULL/empty
+			order["po_no"] = order.get("po_no") or ""
 
 		return {
 			"data": orders,

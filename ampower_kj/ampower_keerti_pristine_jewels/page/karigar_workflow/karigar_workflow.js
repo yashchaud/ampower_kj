@@ -546,11 +546,13 @@ frappe.pages["karigar-workflow"].on_page_load = function (wrapper) {
 								</th>
 								<th style="width: 80px;">S. No.</th>
 								<th>Customer</th>
+								<th>PO No.</th>
 								<th>Karigar</th>
 								<th>Item Code</th>
 								<th>Item Details</th>
 								<th>Description</th>
 								<th>Texture</th>
+								<th>Item Weight (g)</th>
 								<th style="width: 80px;">Qty</th>
 								<th style="width: 120px;">Status</th>
 								<th>Sales Order</th>
@@ -843,6 +845,7 @@ frappe.pages["karigar-workflow"].on_page_load = function (wrapper) {
 
 		page.orders_data.forEach((order, idx) => {
 			const customer = order.customer || "N/A";
+			const po_no = order.po_no || "N/A";
 			const karigar = order.karigar || "N/A";
 			const item_code = order.item_code || "N/A";
 			const item_details = page.format_item_display(order);
@@ -859,6 +862,7 @@ frappe.pages["karigar-workflow"].on_page_load = function (wrapper) {
 				}
 			}
 			const texture = order.texture || "N/A";
+			const item_weight = order.item_weight !== null && order.item_weight !== undefined ? parseFloat(order.item_weight).toFixed(2) : "N/A";
 			const qty = order.qty || 0;
 			const status = order.order_status || "N/A";
 			const sales_order = order.sales_order || "N/A";
@@ -872,11 +876,13 @@ frappe.pages["karigar-workflow"].on_page_load = function (wrapper) {
 					</td>
 					<td>${serial_number}</td>
 					<td><a href="#" class="customer-link" data-order-index="${idx}" style="color: #2490EF; cursor: pointer;">${customer}</a></td>
+					<td>${po_no}</td>
 					<td>${karigar}</td>
 					<td>${item_code}</td>
 					<td>${item_details}</td>
 					<td>${description}</td>
 					<td>${texture}</td>
+					<td>${item_weight}</td>
 					<td>${qty}</td>
 					<td>
 						<span class="status-in-progress">${status}</span>
@@ -889,7 +895,7 @@ frappe.pages["karigar-workflow"].on_page_load = function (wrapper) {
 
 		return (
 			rows_html ||
-			'<tr><td colspan="12" style="text-align: center;">No orders found</td></tr>'
+			'<tr><td colspan="14" style="text-align: center;">No orders found</td></tr>'
 		);
 	};
 
