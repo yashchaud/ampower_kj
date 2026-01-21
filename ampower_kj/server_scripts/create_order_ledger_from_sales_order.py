@@ -1,3 +1,6 @@
+# Copyright (c) 2026, Ambibuzz Technologies LLP and Contributors
+# See license.txt
+
 """
 Server Script: Create Order Ledger from Sales Order
 Events: on_submit, on_cancel on Sales Order
@@ -41,10 +44,24 @@ def create_order_ledger_on_submit(doc, method=None) -> None:
 
 	# System fields to exclude from auto-copy
 	EXCLUDE_FIELDS = {
-		"name", "owner", "creation", "modified", "modified_by",
-		"parent", "parentfield", "parenttype", "idx", "docstatus", "doctype",
+		"name",
+		"owner",
+		"creation",
+		"modified",
+		"modified_by",
+		"parent",
+		"parentfield",
+		"parenttype",
+		"idx",
+		"docstatus",
+		"doctype",
 		# Fields we set manually with different logic
-		"item", "item_code", "sales_order", "sales_order_item", "order_date", "order_status"
+		"item",
+		"item_code",
+		"sales_order",
+		"sales_order_item",
+		"order_date",
+		"order_status",
 	}
 
 	try:
@@ -121,7 +138,7 @@ def create_order_ledger_on_submit(doc, method=None) -> None:
 				logger.error(
 					f"CRITICAL: Order Ledger creation failed for SO Item {item.name}. "
 					f"Item Code: {item.item_code}, Item Name: {item.get('item_name', 'N/A')}. "
-					f"Error: {str(item_error)}. "
+					f"Error: {item_error!s}. "
 					f"Rolling back {len(created_ledgers)} created entries."
 				)
 
@@ -161,7 +178,7 @@ def create_order_ledger_on_submit(doc, method=None) -> None:
 		error_msg = f"Order Ledger creation failed for Sales Order: {doc.name}"
 		logger.error(f"{error_msg}: {e}. Total Items: {len(doc.items)}. Traceback: {frappe.get_traceback()}")
 		# Re-raise to prevent Sales Order submission
-		frappe.throw(f"Failed to create Order Ledger entries. Please contact system administrator.")
+		frappe.throw("Failed to create Order Ledger entries. Please contact system administrator.")
 
 
 def disable_order_ledger_on_cancel(doc, method=None) -> None:
@@ -186,11 +203,7 @@ def disable_order_ledger_on_cancel(doc, method=None) -> None:
 		logger.info(f"Disabling Order Ledgers for cancelled Sales Order: {doc.name}")
 
 		# Get all Order Ledger entries for this Sales Order
-		order_ledgers = frappe.get_all(
-			"Order Ledger",
-			filters={"sales_order": doc.name},
-			pluck="name"
-		)
+		order_ledgers = frappe.get_all("Order Ledger", filters={"sales_order": doc.name}, pluck="name")
 
 		if not order_ledgers:
 			logger.warning(f"No Order Ledger entries found for Sales Order: {doc.name}")
@@ -206,7 +219,7 @@ def disable_order_ledger_on_cancel(doc, method=None) -> None:
 				disabled_ledgers.append(ledger_name)
 				disabled_count += 1
 
-			except Exception as ledger_error:
+			except Exception:
 				# CRITICAL FAILURE - Rollback all disabled entries
 				logger.error(
 					f"CRITICAL: Failed to disable Order Ledger {ledger_name}. "
@@ -233,8 +246,8 @@ def disable_order_ledger_on_cancel(doc, method=None) -> None:
 
 				# STOP Sales Order cancellation
 				frappe.throw(
-					f"Failed to disable Order Ledger entries. "
-					f"Sales Order cancellation prevented. Please contact system administrator."
+					"Failed to disable Order Ledger entries. "
+					"Sales Order cancellation prevented. Please contact system administrator."
 				)
 
 		logger.info(f"Disabled {disabled_count} Order Ledger entries for Sales Order: {doc.name}")
@@ -244,4 +257,4 @@ def disable_order_ledger_on_cancel(doc, method=None) -> None:
 		error_msg = f"Failed to disable Order Ledgers for Sales Order: {doc.name}"
 		logger.error(f"{error_msg}: {e}. Traceback: {frappe.get_traceback()}")
 		# Re-raise to prevent Sales Order cancellation
-		frappe.throw(f"Failed to disable Order Ledger entries. Please contact system administrator.")
+		frappe.throw("Failed to disable Order Ledger entries. Please contact system administrator.")

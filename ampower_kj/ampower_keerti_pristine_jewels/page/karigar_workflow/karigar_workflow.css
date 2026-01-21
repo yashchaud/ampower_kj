@@ -89,7 +89,6 @@ body{
 .workflow-filters {
 	background-color: transparent;
 	padding: 0;
-	margin-bottom: 30px;
 }
 
 .workflow-filters .row {
@@ -113,6 +112,7 @@ body{
 	display: flex;
 	align-items: center;
 	height: 38px;
+
 }
 
 .workflow-filters .filter-box:hover {
@@ -127,7 +127,6 @@ body{
 	padding: 0;
 	box-shadow: none;
 	width: 100%;
-	height: 20px;
 }
 
 .workflow-filters .filter-input:focus {
@@ -145,7 +144,6 @@ body{
 .workflow-steps {
 	background-color: transparent;
 	padding: 25px 0;
-	margin-bottom: 35px;
 }
 
 .steps-container {
@@ -722,7 +720,6 @@ body{
 .image-nav-btn:active:not(:disabled) {
 	transform: translateY(-50%) scale(0.95);
 }
-
 .image-nav-btn:disabled {
 	opacity: 0.3;
 	cursor: not-allowed;
@@ -739,55 +736,6 @@ body{
 
 .next-image-btn {
 	right: 12px;
-}
-
-/* Responsive navigation buttons */
-@media (max-width: 992px) {
-	.image-nav-btn {
-		width: 36px;
-		height: 36px;
-	}
-
-	.image-nav-btn svg {
-		width: 18px;
-		height: 18px;
-	}
-}
-
-@media (max-width: 768px) {
-	.image-nav-btn {
-		width: 32px;
-		height: 32px;
-		background-color: rgba(255, 255, 255, 0.98);
-	}
-
-	.image-nav-btn svg {
-		width: 16px;
-		height: 16px;
-	}
-
-	.prev-image-btn {
-		left: 8px;
-	}
-
-	.next-image-btn {
-		right: 8px;
-	}
-}
-
-@media (max-width: 576px) {
-	.image-nav-btn {
-		width: 30px;
-		height: 30px;
-	}
-
-	.prev-image-btn {
-		left: 6px;
-	}
-
-	.next-image-btn {
-		right: 6px;
-	}
 }
 
 /* Image Counter Badge */
@@ -1310,19 +1258,19 @@ body{
 }
 
 .product-img {
-    width: 100%;
+  	width: 100%;
     height: 100%;
     object-fit: cover;
 }
 
 .image-pagination {
     position: absolute;
-    bottom: 12px;
+    bottom: 10px;
     left: 0;
     right: 0;
     display: flex;
     justify-content: center;
-    align-items: center;
+     align-items: center;
     gap: 8px;
     padding: 8px;
     background: rgba(0, 0, 0, 0.3);
@@ -1334,7 +1282,7 @@ body{
 }
 
 .dot {
-    width: 12px;
+   width: 12px;
     height: 12px;
     border-radius: 50%;
     background-color: rgba(255, 255, 255, 0.5);
@@ -1343,6 +1291,7 @@ body{
     cursor: pointer;
     box-shadow: 0 2px 4px rgba(0, 0, 0, 0.2);
 }
+ 
 
 .dot:hover {
     background-color: rgba(255, 255, 255, 0.8);
@@ -1359,50 +1308,10 @@ body{
     height: 14px;
     box-shadow: 0 0 8px rgba(36, 144, 239, 0.6);
 }
-
 .dot.active:hover {
     background-color: #1a7fcf;
     transform: scale(1.2);
 }
-
-/* Responsive dots */
-@media (max-width: 768px) {
-    .image-pagination {
-        gap: 6px;
-        padding: 6px;
-        bottom: 10px;
-    }
-
-    .dot {
-        width: 10px;
-        height: 10px;
-        border-width: 1.5px;
-    }
-
-    .dot.active {
-        width: 12px;
-        height: 12px;
-    }
-}
-
-@media (max-width: 576px) {
-    .image-pagination {
-        gap: 5px;
-        padding: 5px;
-        bottom: 8px;
-    }
-
-    .dot {
-        width: 8px;
-        height: 8px;
-    }
-
-    .dot.active {
-        width: 10px;
-        height: 10px;
-    }
-}
-
 .image-counter-text {
     font-size: 12px;
     color: #6c757d;
@@ -2051,6 +1960,7 @@ body{
 	.workflow-filters .row {
 		gap: 12px 0;
 	}
+	
 }
 
 @media (max-width: 768px) and (min-width: 577px) {
@@ -2071,48 +1981,16 @@ body{
 		width: 100%;
 	}
 }
-
-@media (max-width: 576px) {
-	/* Mobile: Everything stacked */
-	.workflow-filters .filter-col {
-		flex: 0 0 100%;
-		max-width: 100%;
-		padding: 0 0 10px 0;
-	}
-
-	.workflow-filters .filter-box {
-		padding: 12px 14px;
-	}
-
-	.workflow-filters #clear-filters-btn {
-		width: 100%;
-		margin-top: 4px;
-	}
-}
-
-/* Improve touch targets on mobile */
-@media (max-width: 768px) {
-	.workflow-filters .filter-input {
-		font-size: 16px; /* Prevents iOS zoom on focus */
-		height: 24px;
-	}
-
-	.workflow-filters .filter-box {
-		min-height: 48px; /* Better touch target */
-	}
-
-	.workflow-filters #clear-filters-btn {
-		min-height: 48px;
-		font-size: 15px;
-	}
-}
-
-/* ========================================
-   RESPONSIVE MODAL STYLES
-   ======================================== */
-
-/* Tablet and below */
 @media (max-width: 992px) {
+	.image-nav-btn {
+		width: 36px;
+		height: 36px;
+	}
+
+	.image-nav-btn svg {
+		width: 18px;
+		height: 18px;
+	}
 	.modal-wrapper {
 		padding: 15px;
 	}
@@ -2139,8 +2017,50 @@ body{
 	}
 }
 
-/* Mobile */
+ 
+
+/* Improve touch targets on mobile */
+@media (max-width: 768px) {
+	.workflow-filters .filter-input {
+		font-size: 16px; /* Prevents iOS zoom on focus */
+		height: 24px;
+	}
+
+	.workflow-filters .filter-box {
+		min-height: 48px; /* Better touch target */
+	}
+
+	.workflow-filters #clear-filters-btn {
+		min-height: 48px;
+		font-size: 15px;
+	}
+	.image-nav-btn {
+		width: 32px;
+		height: 32px;
+		background-color: rgba(255, 255, 255, 0.98);
+	}
+
+	.image-nav-btn svg {
+		width: 16px;
+		height: 16px;
+	}
+
+	.prev-image-btn {
+		left: 8px;
+	}
+
+	.next-image-btn {
+		right: 8px;
+	}
+	.image-pagination {
+        gap: 6px;
+        padding: 6px;
+        bottom: 10px;
+	}
+}
 @media (max-width: 576px) {
+	/* Mobile: Everything stacked */
+
 	.modal-wrapper {
 		padding: 10px;
 	}
@@ -2219,8 +2139,7 @@ body{
 		font-size: 12px !important;
 	}
 
-	/* Image navigation buttons smaller on mobile */
-	.image-nav-btn {
+ 	.image-nav-btn {
 		width: 28px !important;
 		height: 28px !important;
 	}
@@ -2233,9 +2152,73 @@ body{
 	.image-counter-text {
 		font-size: 11px;
 	}
-}
 
-/* Extra small screens */
+	.workflow-filters .filter-col {
+		flex: 0 0 100%;
+		max-width: 100%;
+		padding: 0 0 10px 0;
+	}
+
+	.workflow-filters .filter-box {
+		padding: 12px 14px;
+	}
+
+	.workflow-filters #clear-filters-btn {
+		width: 100%;
+		margin-top: 4px;
+	}
+	.image-nav-btn {
+		width: 30px;
+		height: 30px;
+	}
+
+	.prev-image-btn {
+		left: 6px;
+	}
+
+	.next-image-btn {
+		right: 6px;
+	}
+    .image-pagination {
+        gap: 5px;
+        padding: 5px;
+        bottom: 8px;
+    }
+	.dot {
+        width: 8px;
+        height: 8px;
+    }
+
+    .dot.active {
+        width: 10px;
+        height: 10px;
+    }
+	.karigar-single-entry-modal .modal-footer,
+	.karigar-view-modal .modal-footer,
+	.karigar-bulk-entry-modal .modal-footer,
+	.karigar-split-modal .modal-footer {
+		flex-direction: column;
+ 		padding: 12px 16px;
+	}
+ 
+
+	.karigar-single-entry-modal .modal-footer .btn,
+	.karigar-view-modal .modal-footer .btn,
+	.karigar-bulk-entry-modal .modal-footer .btn,
+	.karigar-split-modal .modal-footer .btn {
+		width: 100%;
+		padding: 10px 16px !important;
+		font-size: 14px !important;
+	}
+
+	.karigar-single-entry-modal .modal-footer .btn-secondary,
+	.karigar-view-modal .modal-footer .btn-secondary,
+	.karigar-bulk-entry-modal .modal-footer .btn-secondary,
+	.karigar-split-modal .modal-footer .btn-secondary {
+		margin-bottom: 8px;
+	}
+
+}
 @media (max-width: 400px) {
 	.header-controls {
 		width: 100%;
@@ -2255,37 +2238,6 @@ body{
 		height: 160px;
 		max-width: 200px;
 	}
-}
-
-/* Modal Footer Responsive */
-@media (max-width: 576px) {
-	.karigar-single-entry-modal .modal-footer,
-	.karigar-view-modal .modal-footer,
-	.karigar-bulk-entry-modal .modal-footer,
-	.karigar-split-modal .modal-footer {
-		flex-direction: column;
-		gap: 0;
-		padding: 12px 16px;
-	}
-
-	.karigar-single-entry-modal .modal-footer .btn,
-	.karigar-view-modal .modal-footer .btn,
-	.karigar-bulk-entry-modal .modal-footer .btn,
-	.karigar-split-modal .modal-footer .btn {
-		width: 100%;
-		padding: 10px 16px !important;
-		font-size: 14px !important;
-	}
-
-	.karigar-single-entry-modal .modal-footer .btn-secondary,
-	.karigar-view-modal .modal-footer .btn-secondary,
-	.karigar-bulk-entry-modal .modal-footer .btn-secondary,
-	.karigar-split-modal .modal-footer .btn-secondary {
-		margin-bottom: 12px;
-	}
-}
-
-@media (max-width: 400px) {
 	.karigar-single-entry-modal .modal-footer,
 	.karigar-view-modal .modal-footer,
 	.karigar-bulk-entry-modal .modal-footer,
