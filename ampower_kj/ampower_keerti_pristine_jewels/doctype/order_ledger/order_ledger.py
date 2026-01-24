@@ -305,28 +305,16 @@ def get_all_order_items(
 			# Escape SQL wildcards to prevent injection (% and _ are treated as literals)
 			search = frappe.db.escape(search, percent=False).strip("'")  # Remove quotes added by escape()
 
+		# Sanitize item_name input
+		if item_name:
+			item_name = str(item_name)[:MAX_SEARCH_LENGTH]  # Limit length to prevent performance issues
+			# Escape SQL wildcards to prevent injection (% and _ are treated as literals)
+			item_name = frappe.db.escape(item_name, percent=False).strip("'")  # Remove quotes added by escape()
+
 		# Define DocTypes
 		OrderLedger = DocType("Order Ledger")
 		SalesOrder = DocType("Sales Order")
 		Item = DocType("Item")
-
-		# Debug: Check total entries in database (regardless of filters)
-		total_entries_query = frappe.qb.from_(OrderLedger).select(Count("*").as_("total")).where(OrderLedger.disabled != 1)
-		total_entries_result = total_entries_query.run(as_dict=True)
-		total_entries = total_entries_result[0].total if total_entries_result else 0
-		logger.debug(f"Total Order Ledger entries (disabled != 1): {total_entries}")
-
-		# Debug: Check distinct order statuses in database
-		if order_status:
-			status_check_query = (
-				frappe.qb.from_(OrderLedger)
-				.select(OrderLedger.order_status, Count("*").as_("count"))
-				.where(OrderLedger.disabled != 1)
-				.groupby(OrderLedger.order_status)
-			)
-			status_distribution = status_check_query.run(as_dict=True)
-			logger.debug(f"Order status distribution: {status_distribution}")
-			logger.debug(f"Filtering by order_status: '{order_status}'")
 
 		# Handle return_counts_only mode - optimized single query with GROUP BY
 		if return_counts_only:
@@ -348,12 +336,17 @@ def get_all_order_items(
 			if karigar:
 				count_query = count_query.where(OrderLedger.soi_karigar == karigar)
 			if item_name:
-				count_query = count_query.where(OrderLedger.soi_die == item_name)
+				count_query = count_query.where(Item.item_name.like(f"%{item_name}%"))
 			if search:
+				# Enhanced fuzzy search across multiple fields
 				search_condition = (
 					(OrderLedger.name.like(f"%{search}%"))
 					| (OrderLedger.sales_order.like(f"%{search}%"))
 					| (OrderLedger.item.like(f"%{search}%"))
+					| (Item.item_name.like(f"%{search}%"))
+					| (SalesOrder.customer.like(f"%{search}%"))
+					| (SalesOrder.po_no.like(f"%{search}%"))
+					| (OrderLedger.soi_karigar.like(f"%{search}%"))
 				)
 				count_query = count_query.where(search_condition)
 
@@ -442,22 +435,25 @@ def get_all_order_items(
 			count_query = count_query.where(SalesOrder.customer == customer)
 
 		if item_name:
-			query = query.where(OrderLedger.soi_die == item_name)
-			count_query = count_query.where(OrderLedger.soi_die == item_name)
+			query = query.where(Item.item_name.like(f"%{item_name}%"))
+			count_query = count_query.where(Item.item_name.like(f"%{item_name}%"))
 
-		# Apply search filter
+		# Apply search filter with enhanced fuzzy search
 		if search:
 			search_condition = (
 				(OrderLedger.name.like(f"%{search}%"))
 				| (OrderLedger.sales_order.like(f"%{search}%"))
 				| (OrderLedger.item.like(f"%{search}%"))
+				| (Item.item_name.like(f"%{search}%"))
+				| (SalesOrder.customer.like(f"%{search}%"))
+				| (SalesOrder.po_no.like(f"%{search}%"))
+				| (OrderLedger.soi_karigar.like(f"%{search}%"))
 			)
 			query = query.where(search_condition)
 			count_query = count_query.where(search_condition)
 
 		# Get total count
 		total_count = count_query.run(as_dict=True)[0].total
-		logger.debug(f"Total count from query: {total_count}")
 
 		# Add ordering and pagination
 		start = (page - 1) * page_size
@@ -465,7 +461,6 @@ def get_all_order_items(
 
 		# Execute query
 		orders = query.run(as_dict=True)
-		logger.debug(f"Query returned {len(orders)} orders")
 
 		# Enrich data with additional fields for frontend compatibility
 		for order in orders:
@@ -574,6 +569,7 @@ def get_filter_options() -> dict[str, list[str]]:
 		# Define DocTypes
 		OrderLedger = DocType("Order Ledger")
 		SalesOrder = DocType("Sales Order")
+		Item = DocType("Item")
 
 		base_condition = OrderLedger.disabled != 1
 
@@ -603,22 +599,21 @@ def get_filter_options() -> dict[str, list[str]]:
 		)
 		karigars = [row[0] for row in karigar_query.run() if row[0]]
 
-		# Get unique item groups (from soi_die field)
-		item_group_query = (
+		# Get unique item names from Item table
+		item_name_query = (
 			frappe.qb.from_(OrderLedger)
-			.select(OrderLedger.soi_die)
+			.left_join(Item)
+			.on(OrderLedger.item == Item.name)
+			.select(Item.item_name)
 			.distinct()
 			.where(base_condition)
-			.where(OrderLedger.soi_die.isnotnull())
-			.where(OrderLedger.soi_die != "")
-			.orderby(OrderLedger.soi_die, order=Order.asc)
+			.where(Item.item_name.isnotnull())
+			.where(Item.item_name != "")
+			.orderby(Item.item_name, order=Order.asc)
 		)
-		item_groups = [row[0] for row in item_group_query.run() if row[0]]
+		item_names = [row[0] for row in item_name_query.run() if row[0]]
 
-		logger.debug(
-			f"Filter options: {len(customers)} customers, {len(karigars)} karigars, {len(item_groups)} item_groups"
-		)
-		return {"customers": customers, "karigars": karigars, "item_names": item_groups}
+		return {"customers": customers, "karigars": karigars, "item_names": item_names}
 
 	except frappe.PermissionError:
 		# Permission errors - let them through to user

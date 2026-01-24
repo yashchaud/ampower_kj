@@ -8,7 +8,7 @@
     />
 
     <!-- Toolbar -->
-    <div class="tw-flex tw-flex-col sm:tw-flex-row tw-items-stretch sm:tw-items-center tw-justify-between tw-gap-3 sm:tw-gap-4 tw-mb-4 tw-py-3 tw-flex-shrink-0">
+    <div class="tw-flex tw-flex-col sm:tw-flex-row tw-items-stretch sm:tw-items-center tw-justify-between tw-gap-3 sm:tw-gap-4 tw-mb-4 tw-py-3 tw-flex-shrink-0 tw-relative tw-z-[70]">
       <!-- Search -->
       <div class="tw-relative tw-w-full sm:tw-flex-1 sm:tw-max-w-md">
         <span class="material-symbols-outlined tw-absolute tw-left-3 tw-top-1/2 tw--translate-y-1/2 tw-text-slate-400 tw-text-lg">
@@ -42,36 +42,38 @@
 
           <!-- Backdrop -->
           <Teleport to="body">
-            <div v-if="isFiltersOpen" class="tw-fixed tw-inset-0 tw-z-40" @click="closeFilters"></div>
+            <div v-if="isFiltersOpen" class="tw-fixed tw-inset-0 tw-z-[999]" @click="closeFilters"></div>
           </Teleport>
 
           <!-- Filters Dropdown Menu -->
-          <Transition
-            enter-active-class="tw-transition tw-ease-out tw-duration-300"
-            enter-from-class="tw-opacity-0 tw-scale-95"
-            enter-to-class="tw-opacity-100 tw-scale-100"
-            leave-active-class="tw-transition tw-ease-in tw-duration-200"
-            leave-from-class="tw-opacity-100 tw-scale-100"
-            leave-to-class="tw-opacity-0 tw-scale-95"
-          >
-            <div
-              v-if="isFiltersOpen"
-              class="tw-fixed sm:tw-absolute tw-z-50 tw-inset-x-4 sm:tw-inset-x-auto tw-top-auto sm:tw-top-full tw-bottom-4 sm:tw-bottom-auto tw-mt-0 sm:tw-mt-2 tw-left-0 tw-right-0 sm:tw-right-auto tw-w-auto sm:tw-w-[400px] tw-max-h-[80vh] tw-overflow-y-auto tw-bg-white tw-rounded-xl tw-shadow-[0_20px_40px_-5px_rgba(0,0,0,0.15),0_8px_16px_-6px_rgba(0,0,0,0.1)] tw-border tw-border-slate-100 tw-transition-all tw-duration-300"
+          <Teleport to="body">
+            <Transition
+              enter-active-class="tw-transition tw-ease-out tw-duration-300"
+              enter-from-class="tw-opacity-0 tw-translate-y-2"
+              enter-to-class="tw-opacity-100 tw-translate-y-0"
+              leave-active-class="tw-transition tw-ease-in tw-duration-200"
+              leave-from-class="tw-opacity-100 tw-translate-y-0"
+              leave-to-class="tw-opacity-0 tw-translate-y-2"
             >
+              <div
+                v-if="isFiltersOpen"
+                :style="filterDropdownStyle"
+                class="tw-fixed tw-z-[1000] tw-overflow-y-auto tw-bg-white dark:tw-bg-slate-800 tw-rounded-xl tw-shadow-[0_20px_40px_-5px_rgba(0,0,0,0.15),0_8px_16px_-6px_rgba(0,0,0,0.1)] tw-border tw-border-slate-200 dark:tw-border-slate-700 tw-transition-all tw-duration-300"
+              >
               <!-- Content Padding -->
               <div class="tw-p-5 sm:tw-p-8 tw-flex tw-flex-col tw-gap-6 sm:tw-gap-8">
                 <!-- Field 1: Customer Search -->
                 <div class="tw-flex tw-flex-col tw-gap-2 tw-group">
-                  <label class="tw-text-[11px] tw-font-semibold tw-tracking-[0.15em] tw-text-slate-400 tw-uppercase">
+                  <label class="tw-text-[11px] tw-font-semibold tw-tracking-[0.15em] tw-text-slate-400 dark:tw-text-slate-500 tw-uppercase">
                     Customer
                   </label>
-                  <div class="tw-relative tw-flex tw-items-center tw-w-full tw-border-b tw-border-slate-200 tw-py-2 group-focus-within:tw-border-blue-600 tw-transition-colors tw-duration-200">
-                    <span class="material-symbols-outlined tw-text-slate-400 tw-text-[20px] tw-mr-3 group-focus-within:tw-text-blue-600 tw-transition-colors">
+                  <div class="tw-relative tw-flex tw-items-center tw-w-full tw-border-b tw-border-slate-200 dark:tw-border-slate-600 tw-py-2 group-focus-within:tw-border-blue-600 tw-transition-colors tw-duration-200">
+                    <span class="material-symbols-outlined tw-text-slate-400 dark:tw-text-slate-500 tw-text-[20px] tw-mr-3 group-focus-within:tw-text-blue-600 tw-transition-colors">
                       search
                     </span>
                     <input
                       v-model="filters.customer"
-                      class="tw-w-full tw-bg-transparent tw-border-none tw-p-0 tw-text-sm tw-font-normal tw-text-slate-900 placeholder:tw-text-slate-300 focus:tw-ring-0 tw-leading-normal focus:tw-outline-none"
+                      class="tw-w-full tw-bg-transparent tw-border-none tw-p-0 tw-text-sm tw-font-normal tw-text-slate-900 dark:tw-text-slate-100 placeholder:tw-text-slate-300 dark:placeholder:tw-text-slate-600 focus:tw-ring-0 tw-leading-normal focus:tw-outline-none"
                       placeholder="Search by name or ID"
                       type="text"
                     />
@@ -80,16 +82,16 @@
 
                 <!-- Field 2: Karigar Search -->
                 <div class="tw-flex tw-flex-col tw-gap-2 tw-group">
-                  <label class="tw-text-[11px] tw-font-semibold tw-tracking-[0.15em] tw-text-slate-400 tw-uppercase">
+                  <label class="tw-text-[11px] tw-font-semibold tw-tracking-[0.15em] tw-text-slate-400 dark:tw-text-slate-500 tw-uppercase">
                     Karigar
                   </label>
-                  <div class="tw-relative tw-flex tw-items-center tw-w-full tw-border-b tw-border-slate-200 tw-py-2 group-focus-within:tw-border-blue-600 tw-transition-colors tw-duration-200">
-                    <span class="material-symbols-outlined tw-text-slate-400 tw-text-[20px] tw-mr-3 group-focus-within:tw-text-blue-600 tw-transition-colors">
+                  <div class="tw-relative tw-flex tw-items-center tw-w-full tw-border-b tw-border-slate-200 dark:tw-border-slate-600 tw-py-2 group-focus-within:tw-border-blue-600 tw-transition-colors tw-duration-200">
+                    <span class="material-symbols-outlined tw-text-slate-400 dark:tw-text-slate-500 tw-text-[20px] tw-mr-3 group-focus-within:tw-text-blue-600 tw-transition-colors">
                       search
                     </span>
                     <input
                       v-model="filters.karigar"
-                      class="tw-w-full tw-bg-transparent tw-border-none tw-p-0 tw-text-sm tw-font-normal tw-text-slate-900 placeholder:tw-text-slate-300 focus:tw-ring-0 tw-leading-normal focus:tw-outline-none"
+                      class="tw-w-full tw-bg-transparent tw-border-none tw-p-0 tw-text-sm tw-font-normal tw-text-slate-900 dark:tw-text-slate-100 placeholder:tw-text-slate-300 dark:placeholder:tw-text-slate-600 focus:tw-ring-0 tw-leading-normal focus:tw-outline-none"
                       placeholder="Search by karigar name"
                       type="text"
                     />
@@ -98,16 +100,16 @@
 
                 <!-- Field 3: Item Name -->
                 <div class="tw-flex tw-flex-col tw-gap-2 tw-group">
-                  <label class="tw-text-[11px] tw-font-semibold tw-tracking-[0.15em] tw-text-slate-400 tw-uppercase">
+                  <label class="tw-text-[11px] tw-font-semibold tw-tracking-[0.15em] tw-text-slate-400 dark:tw-text-slate-500 tw-uppercase">
                     Item Name
                   </label>
-                  <div class="tw-relative tw-flex tw-items-center tw-w-full tw-border-b tw-border-slate-200 tw-py-2 group-focus-within:tw-border-blue-600 tw-transition-colors tw-duration-200">
-                    <span class="material-symbols-outlined tw-text-slate-400 tw-text-[20px] tw-mr-3 group-focus-within:tw-text-blue-600 tw-transition-colors">
+                  <div class="tw-relative tw-flex tw-items-center tw-w-full tw-border-b tw-border-slate-200 dark:tw-border-slate-600 tw-py-2 group-focus-within:tw-border-blue-600 tw-transition-colors tw-duration-200">
+                    <span class="material-symbols-outlined tw-text-slate-400 dark:tw-text-slate-500 tw-text-[20px] tw-mr-3 group-focus-within:tw-text-blue-600 tw-transition-colors">
                       inventory_2
                     </span>
                     <input
                       v-model="filters.itemName"
-                      class="tw-w-full tw-bg-transparent tw-border-none tw-p-0 tw-text-sm tw-font-normal tw-text-slate-900 placeholder:tw-text-slate-300 focus:tw-ring-0 tw-leading-normal focus:tw-outline-none"
+                      class="tw-w-full tw-bg-transparent tw-border-none tw-p-0 tw-text-sm tw-font-normal tw-text-slate-900 dark:tw-text-slate-100 placeholder:tw-text-slate-300 dark:placeholder:tw-text-slate-600 focus:tw-ring-0 tw-leading-normal focus:tw-outline-none"
                       placeholder="Search item name"
                       type="text"
                     />
@@ -116,10 +118,10 @@
               </div>
 
               <!-- Footer Actions -->
-              <div class="tw-px-5 sm:tw-px-8 tw-pb-5 sm:tw-pb-8 tw-pt-2 tw-flex tw-flex-col sm:tw-flex-row tw-items-stretch sm:tw-items-center tw-justify-between tw-gap-3 sm:tw-gap-0">
+              <div class="tw-px-5 sm:tw-px-8 tw-pb-5 sm:tw-pb-8 tw-pt-2 tw-flex tw-flex-col sm:tw-flex-row tw-items-stretch sm:tw-items-center tw-justify-between tw-gap-3 sm:tw-gap-0 tw-border-t tw-border-slate-200 dark:tw-border-slate-700">
                 <button
                   @click="clearFilters"
-                  class="tw-text-sm tw-font-medium tw-text-slate-400 hover:tw-text-slate-600 tw-transition-colors tw-px-2 tw-py-2 tw-rounded tw-order-2 sm:tw-order-1"
+                  class="tw-text-sm tw-font-medium tw-text-slate-400 dark:tw-text-slate-500 hover:tw-text-slate-600 dark:hover:tw-text-slate-300 tw-transition-colors tw-px-2 tw-py-2 tw-rounded tw-order-2 sm:tw-order-1"
                   :class="{ 'tw-opacity-50 tw-cursor-not-allowed': activeFiltersCount === 0 }"
                   :disabled="activeFiltersCount === 0"
                 >
@@ -133,7 +135,8 @@
                 </button>
               </div>
             </div>
-          </Transition>
+            </Transition>
+          </Teleport>
         </div>
 
         <!-- Columns Dropdown -->
@@ -150,31 +153,33 @@
 
           <!-- Backdrop -->
           <Teleport to="body">
-            <div v-if="isColumnsOpen" class="tw-fixed tw-inset-0 tw-z-40" @click="closeColumns"></div>
+            <div v-if="isColumnsOpen" class="tw-fixed tw-inset-0 tw-z-[999]" @click="closeColumns"></div>
           </Teleport>
 
           <!-- Columns Dropdown Menu -->
-          <Transition
-            enter-active-class="tw-transition tw-ease-out tw-duration-200"
-            enter-from-class="tw-opacity-0 tw-scale-95"
-            enter-to-class="tw-opacity-100 tw-scale-100"
-            leave-active-class="tw-transition tw-ease-in tw-duration-150"
-            leave-from-class="tw-opacity-100 tw-scale-100"
-            leave-to-class="tw-opacity-0 tw-scale-95"
-          >
-            <div
-              v-if="isColumnsOpen"
-              class="tw-fixed sm:tw-absolute tw-z-50 tw-inset-x-4 sm:tw-inset-x-auto tw-top-auto sm:tw-top-full tw-bottom-4 sm:tw-bottom-auto tw-mt-0 sm:tw-mt-2 tw-right-0 tw-left-0 sm:tw-left-auto tw-w-auto sm:tw-w-[360px] tw-max-h-[80vh] tw-flex tw-flex-col tw-rounded-xl tw-bg-white tw-shadow-[0_20px_40px_-10px_rgba(0,0,0,0.15),0_10px_20px_-5px_rgba(0,0,0,0.1)] tw-border tw-border-gray-100/50 tw-overflow-hidden"
+          <Teleport to="body">
+            <Transition
+              enter-active-class="tw-transition tw-ease-out tw-duration-200"
+              enter-from-class="tw-opacity-0 tw-translate-y-2"
+              enter-to-class="tw-opacity-100 tw-translate-y-0"
+              leave-active-class="tw-transition tw-ease-in tw-duration-150"
+              leave-from-class="tw-opacity-100 tw-translate-y-0"
+              leave-to-class="tw-opacity-0 tw-translate-y-2"
             >
+              <div
+                v-if="isColumnsOpen"
+                :style="columnDropdownStyle"
+                class="tw-fixed tw-z-[1000] tw-flex tw-flex-col tw-rounded-xl tw-bg-white dark:tw-bg-slate-800 tw-shadow-[0_20px_40px_-10px_rgba(0,0,0,0.15),0_10px_20px_-5px_rgba(0,0,0,0.1)] tw-border tw-border-gray-200 dark:tw-border-slate-700 tw-overflow-hidden"
+              >
               <!-- Search Header -->
-              <div class="tw-px-4 tw-py-3 tw-border-b tw-border-gray-200/50 tw-bg-white tw-z-10">
-                <div class="tw-flex tw-items-center tw-gap-2.5 tw-bg-gray-50 tw-border tw-border-gray-200 tw-rounded-lg tw-px-3 tw-py-2 tw-transition-colors focus-within:tw-border-blue-500/40 focus-within:tw-ring-2 focus-within:tw-ring-blue-500/10">
-                  <span class="material-symbols-outlined tw-text-gray-400 tw-text-[20px] tw-select-none">
+              <div class="tw-px-4 tw-py-3 tw-border-b tw-border-gray-200/50 dark:tw-border-slate-700 tw-bg-white dark:tw-bg-slate-800 tw-z-10">
+                <div class="tw-flex tw-items-center tw-gap-2.5 tw-bg-gray-50 dark:tw-bg-slate-700/50 tw-border tw-border-gray-200 dark:tw-border-slate-600 tw-rounded-lg tw-px-3 tw-py-2 tw-transition-colors focus-within:tw-border-blue-500/40 focus-within:tw-ring-2 focus-within:tw-ring-blue-500/10">
+                  <span class="material-symbols-outlined tw-text-gray-400 dark:tw-text-slate-500 tw-text-[20px] tw-select-none">
                     search
                   </span>
                   <input
                     v-model="columnSearchQuery"
-                    class="tw-flex-1 tw-bg-transparent tw-border-none tw-p-0 tw-text-sm tw-text-gray-800 placeholder:tw-text-gray-500 focus:tw-ring-0 focus:tw-outline-none"
+                    class="tw-flex-1 tw-bg-transparent tw-border-none tw-p-0 tw-text-sm tw-text-gray-800 dark:tw-text-slate-100 placeholder:tw-text-gray-500 dark:placeholder:tw-text-slate-600 focus:tw-ring-0 focus:tw-outline-none"
                     placeholder="Search columns..."
                     type="text"
                   />
@@ -182,43 +187,45 @@
               </div>
 
               <!-- Scrollable Column List -->
-              <div class="tw-flex-1 tw-overflow-y-auto tw-max-h-[360px] tw-p-2 tw-bg-white column-scrollbar">
+              <div class="tw-flex-1 tw-overflow-y-auto tw-max-h-[360px] tw-p-2 tw-bg-white dark:tw-bg-slate-800 column-scrollbar">
                 <label
                   v-for="column in filteredColumnsList"
                   :key="column.key"
-                  class="tw-flex tw-items-center tw-gap-3 tw-px-3 tw-py-2.5 tw-rounded-lg hover:tw-bg-gray-50 tw-cursor-pointer tw-transition-colors tw-group tw-select-none"
+                  class="tw-flex tw-items-center tw-gap-3 tw-px-3 tw-py-2.5 tw-rounded-lg hover:tw-bg-gray-50 dark:hover:tw-bg-slate-700 tw-cursor-pointer tw-transition-colors tw-group tw-select-none"
                 >
                   <input
                     type="checkbox"
                     v-model="visibleColumns[column.key]"
                     class="custom-checkbox tw-focus:tw-ring-0 tw-focus:tw-ring-offset-0"
                   />
-                  <span class="tw-text-sm tw-font-medium tw-text-gray-700 group-hover:tw-text-gray-900 tw-transition-colors">{{ column.label }}</span>
+                  <span class="tw-text-sm tw-font-medium tw-text-gray-700 dark:tw-text-slate-300 group-hover:tw-text-gray-900 dark:group-hover:tw-text-slate-100 tw-transition-colors">{{ column.label }}</span>
                 </label>
               </div>
 
               <!-- Footer Actions -->
-              <div class="tw-px-4 tw-py-3 tw-border-t tw-border-gray-200/50 tw-bg-white tw-flex tw-items-center tw-justify-between tw-gap-3">
+              <div class="tw-px-4 tw-py-3 tw-border-t tw-border-gray-200/50 dark:tw-border-slate-700 tw-bg-white dark:tw-bg-slate-800 tw-flex tw-items-center tw-justify-between tw-gap-3">
                 <button
                   @click="showAllColumns"
-                  class="tw-flex-1 tw-px-3 tw-py-2 tw-rounded-lg tw-text-xs tw-font-semibold tw-text-blue-600 hover:tw-bg-blue-50 hover:tw-text-blue-700 tw-transition-colors tw-border tw-border-transparent focus:tw-outline-none focus:tw-ring-2 focus:tw-ring-blue-500/20"
+                  class="tw-flex-1 tw-px-3 tw-py-2 tw-rounded-lg tw-text-xs tw-font-semibold tw-text-blue-600 dark:tw-text-blue-400 hover:tw-bg-blue-50 dark:hover:tw-bg-blue-900/20 hover:tw-text-blue-700 dark:hover:tw-text-blue-300 tw-transition-colors tw-border tw-border-transparent focus:tw-outline-none focus:tw-ring-2 focus:tw-ring-blue-500/20"
                 >
                   Select All
                 </button>
-                <div class="tw-h-4 tw-w-[1px] tw-bg-gray-200"></div>
+                <div class="tw-h-4 tw-w-[1px] tw-bg-gray-200 dark:tw-bg-slate-700"></div>
                 <button
                   @click="hideAllColumns"
-                  class="tw-flex-1 tw-px-3 tw-py-2 tw-rounded-lg tw-text-xs tw-font-semibold tw-text-gray-500 hover:tw-text-gray-700 hover:tw-bg-gray-50 tw-transition-colors focus:tw-outline-none focus:tw-ring-2 focus:tw-ring-gray-200"
+                  class="tw-flex-1 tw-px-3 tw-py-2 tw-rounded-lg tw-text-xs tw-font-semibold tw-text-gray-500 dark:tw-text-slate-400 hover:tw-text-gray-700 dark:hover:tw-text-slate-300 hover:tw-bg-gray-50 dark:hover:tw-bg-slate-700 tw-transition-colors focus:tw-outline-none focus:tw-ring-2 focus:tw-ring-gray-200 dark:focus:tw-ring-slate-600"
                 >
                   Reset to Default
                 </button>
               </div>
             </div>
-          </Transition>
+            </Transition>
+          </Teleport>
         </div>
 
-        <div class="tw-hidden sm:tw-block tw-w-px tw-h-6 tw-bg-slate-200 tw-mx-2"></div>
+        <div v-if="currentTab !== 'Delivered'" class="tw-hidden sm:tw-block tw-w-px tw-h-6 tw-bg-slate-200 tw-mx-2"></div>
         <CwDropdown
+          v-if="currentTab !== 'Delivered'"
           label="Actions"
           icon="bolt"
           button-variant="primary"
@@ -267,6 +274,15 @@
         @action-click="handleRowAction"
       >
       <!-- Custom cell slots -->
+      <template #cell-customer="{ row, value }">
+        <button
+          class="tw-font-semibold tw-text-slate-700 dark:tw-text-slate-200 hover:tw-text-primary-600 dark:hover:tw-text-primary-400 hover:tw-underline tw-text-left tw-transition-colors"
+          @click.stop="openSalesOrder(row)"
+        >
+          {{ value }}
+        </button>
+      </template>
+
       <template #cell-karigar="{ row }">
         <div v-if="row.karigar" class="tw-flex tw-items-center tw-gap-2">
           <CwAvatar :name="row.karigar.name" size="sm" :color="getKarigarColor(row.karigar.color)" />
@@ -444,6 +460,8 @@ const isColumnsOpen = ref(false);
 const filtersDropdownRef = ref(null);
 const columnsDropdownRef = ref(null);
 const columnSearchQuery = ref('');
+// Reactive window size to trigger dropdown repositioning
+const windowSize = ref({ width: window.innerWidth, height: window.innerHeight });
 const visibleColumns = ref({
   sno: true,
   customer: true,
@@ -494,19 +512,19 @@ const filterOptions = reactive({
 
 // Static columns definition
 const columns = [
-  { key: 'sno', label: 'S.No', width: '16', sortable: true, cellClass: 'tw-text-gray-500 dark:tw-text-gray-400 tw-font-mono' },
-  { key: 'customer', label: 'Customer', sortable: true, cellClass: 'tw-font-semibold tw-text-slate-700 dark:tw-text-slate-200' },
-  { key: 'po_no', label: 'PO No.', sortable: true, cellClass: 'tw-font-mono tw-text-gray-600 dark:tw-text-gray-400' },
-  { key: 'karigar', label: 'Karigar', sortable: true, cellClass: 'tw-text-slate-600 dark:tw-text-slate-300' },
-  { key: 'item_code', label: 'Item Code', sortable: true, cellClass: 'tw-font-mono tw-text-gray-500 dark:tw-text-gray-400' },
-  { key: 'item_details', label: 'Item Details', sortable: true, cellClass: 'tw-text-slate-800 dark:tw-text-slate-200 tw-max-w-xs tw-truncate tw-font-medium' },
-  { key: 'description', label: 'Description', sortable: true, cellClass: 'tw-text-gray-600 dark:tw-text-gray-400 tw-max-w-xs tw-truncate' },
-  { key: 'texture', label: 'Texture', sortable: true, cellClass: 'tw-text-gray-500 dark:tw-text-gray-400' },
-  { key: 'item_weight', label: 'Item Weight (g)', sortable: true, cellClass: 'tw-text-gray-600 dark:tw-text-gray-400 tw-text-right tw-font-mono' },
+  { key: 'sno', label: 'S.No', width: '16', sortable: true, headerClass: 'tw-text-center', cellClass: 'tw-text-center tw-text-gray-500 dark:tw-text-gray-400 tw-font-mono' },
+  { key: 'customer', label: 'Customer', sortable: true, headerClass: 'tw-text-left', cellClass: 'tw-text-left tw-font-semibold tw-text-slate-700 dark:tw-text-slate-200' },
+  { key: 'po_no', label: 'PO No.', sortable: true, headerClass: 'tw-text-left', cellClass: 'tw-text-left tw-font-mono tw-text-gray-600 dark:tw-text-gray-400' },
+  { key: 'karigar', label: 'Karigar', sortable: true, headerClass: 'tw-text-left', cellClass: 'tw-text-left tw-text-slate-600 dark:tw-text-slate-300' },
+  { key: 'item_code', label: 'Item Code', sortable: true, headerClass: 'tw-text-left', cellClass: 'tw-text-left tw-font-mono tw-text-gray-500 dark:tw-text-gray-400' },
+  { key: 'item_details', label: 'Item Details', sortable: true, headerClass: 'tw-text-left', cellClass: 'tw-text-left tw-text-slate-800 dark:tw-text-slate-200 tw-max-w-xs tw-truncate tw-font-medium' },
+  { key: 'description', label: 'Description', sortable: true, headerClass: 'tw-text-left', cellClass: 'tw-text-left tw-text-gray-600 dark:tw-text-gray-400 tw-max-w-xs tw-truncate' },
+  { key: 'texture', label: 'Texture', sortable: true, headerClass: 'tw-text-left', cellClass: 'tw-text-left tw-text-gray-500 dark:tw-text-gray-400' },
+  { key: 'item_weight', label: 'Item Weight (g)', sortable: true, headerClass: 'tw-text-right', cellClass: 'tw-text-right tw-text-gray-600 dark:tw-text-gray-400 tw-font-mono' },
   { key: 'qty', label: 'Qty', width: '16', sortable: true, headerClass: 'tw-text-center', cellClass: 'tw-text-center tw-font-bold tw-text-slate-700 dark:tw-text-slate-300' },
-  { key: 'status', label: 'Status', sortable: true },
-  { key: 'sales_order', label: 'Sales Order', sortable: true, cellClass: 'tw-text-primary hover:tw-underline tw-cursor-pointer tw-font-medium' },
-  { key: 'id', label: 'ID', sortable: true, cellClass: 'tw-font-mono tw-text-xs tw-text-gray-500 dark:tw-text-gray-400' }
+  { key: 'status', label: 'Status', sortable: true, headerClass: 'tw-text-left', cellClass: 'tw-text-left' },
+  { key: 'sales_order', label: 'Sales Order', sortable: true, headerClass: 'tw-text-left', cellClass: 'tw-text-left tw-text-primary hover:tw-underline tw-cursor-pointer tw-font-medium' },
+  { key: 'id', label: 'ID', sortable: true, headerClass: 'tw-text-left', cellClass: 'tw-text-left tw-font-mono tw-text-xs tw-text-gray-500 dark:tw-text-gray-400' }
 ];
 
 const actionItems = [
@@ -709,6 +727,85 @@ function closeColumns() {
   isColumnsOpen.value = false;
 }
 
+// Computed styles for dropdown positioning
+const filterDropdownStyle = computed(() => {
+  // Use reactive windowSize to trigger recalculation on resize
+  const viewportWidth = windowSize.value.width;
+  const viewportHeight = windowSize.value.height;
+
+  if (!filtersDropdownRef.value) return {};
+  const rect = filtersDropdownRef.value.getBoundingClientRect();
+  const isMobile = viewportWidth < 640;
+
+  // Calculate available height below button with 16px margin from bottom
+  const availableHeight = viewportHeight - rect.bottom - 24;
+  const maxHeight = Math.min(availableHeight, isMobile ? 400 : viewportHeight * 0.8);
+
+  if (isMobile) {
+    // Full width on mobile with padding, capped at 400px
+    return {
+      top: `${rect.bottom + 8}px`,
+      left: '16px',
+      right: '16px',
+      width: 'auto',
+      maxWidth: '400px',
+      maxHeight: `${maxHeight}px`,
+    };
+  }
+
+  // Desktop: position below button, constrain to viewport
+  const dropdownWidth = 400;
+  let left = rect.left;
+  if (left + dropdownWidth > viewportWidth - 16) {
+    left = viewportWidth - dropdownWidth - 16;
+  }
+
+  return {
+    top: `${rect.bottom + 8}px`,
+    left: `${Math.max(16, left)}px`,
+    width: `${dropdownWidth}px`,
+  };
+});
+
+const columnDropdownStyle = computed(() => {
+  // Use reactive windowSize to trigger recalculation on resize
+  const viewportWidth = windowSize.value.width;
+  const viewportHeight = windowSize.value.height;
+
+  if (!columnsDropdownRef.value) return {};
+  const rect = columnsDropdownRef.value.getBoundingClientRect();
+  const isMobile = viewportWidth < 640;
+
+  // Calculate available height below button with 16px margin from bottom
+  const availableHeight = viewportHeight - rect.bottom - 24;
+  const maxHeight = Math.min(availableHeight, isMobile ? 400 : viewportHeight * 0.8);
+
+  if (isMobile) {
+    // Full width on mobile with padding, capped at 360px
+    return {
+      top: `${rect.bottom + 8}px`,
+      left: '16px',
+      right: '16px',
+      width: 'auto',
+      maxWidth: '360px',
+      maxHeight: `${maxHeight}px`,
+    };
+  }
+
+  // Desktop: right-align to button, constrain to viewport
+  const dropdownWidth = 360;
+  let left = rect.right - dropdownWidth;
+  if (left < 16) {
+    left = 16;
+  }
+
+  return {
+    top: `${rect.bottom + 8}px`,
+    left: `${left}px`,
+    width: `${dropdownWidth}px`,
+  };
+});
+
 function handlePageSizeChange(newSize) {
   pageSize.value = newSize;
   currentPage.value = 1;
@@ -773,9 +870,9 @@ watch([() => filters.customer, () => filters.karigar, () => filters.itemName], (
   loadStatusCounts();
 });
 
-// Debounce search to prevent excessive API calls
+// Debounce search to prevent excessive API calls (reduced for faster search-as-you-type)
 const searchDebounceTimeout = ref(null);
-const SEARCH_DEBOUNCE_MS = 500;
+const SEARCH_DEBOUNCE_MS = 250;
 
 // Methods
 const handleSearch = () => {
@@ -913,7 +1010,53 @@ const handleRowClick = (row) => {
 };
 
 const handleRowDblClick = (row) => {
-  props.frappe.set_route('Form', 'Sales Order', row.sales_order);
+  // Double-click now toggles checkbox in CwTable, this handler is kept for compatibility
+  logger.debug('Row double-clicked:', row.id);
+};
+
+// Opens the next stage workflow (called when clicking customer name)
+const openSalesOrder = async (row) => {
+  const stageInfo = getStageInfo();
+
+  if (!stageInfo.next) {
+    props.frappe.msgprint({
+      title: 'End of Workflow',
+      message: 'Already at the final stage',
+      indicator: 'orange'
+    });
+    return;
+  }
+
+  const needsWeight = requiresWeightEntry(stageInfo.current, stageInfo.next);
+
+  if (needsWeight) {
+    // Open single weight entry modal for this item
+    const transitionType = getWeightType(stageInfo.current, stageInfo.next);
+    selectedOrderData.value = {
+      ...row,
+      transitionType: transitionType,
+      targetStage: stageInfo.next
+    };
+    showOrderModal.value = true;
+  } else {
+    // Show transition modal for confirmation
+    transitionData.fromStage = stageInfo.current;
+    transitionData.toStage = stageInfo.next;
+    transitionData.itemCount = 1;
+    transitionData.callback = async () => {
+      const results = await updateOrderStatus([row.id], stageInfo.next);
+
+      if (results && results.length > 0 && results[0].success) {
+        props.frappe.show_alert({
+          message: `Item moved to ${stageInfo.next}`,
+          indicator: 'green'
+        });
+        await loadOrders();
+        await loadStatusCounts();
+      }
+    };
+    showTransitionModal.value = true;
+  }
 };
 
 const handleRowAction = (row) => {
@@ -1126,6 +1269,11 @@ const handleTransitionCancel = () => {
 // Lifecycle hooks
 let realtimeCleanup = null;
 
+// Update window size on resize to trigger dropdown repositioning
+const handleResize = () => {
+  windowSize.value = { width: window.innerWidth, height: window.innerHeight };
+};
+
 onMounted(async () => {
   await initializeData();
 
@@ -1138,12 +1286,18 @@ onMounted(async () => {
     loadOrders();
     loadStatusCounts();
   });
+
+  // Add resize listener
+  window.addEventListener('resize', handleResize);
 });
 
 onUnmounted(() => {
   if (realtimeCleanup) {
     realtimeCleanup();
   }
+
+  // Remove resize listener
+  window.removeEventListener('resize', handleResize);
 
   // Clear search debounce timeout
   if (searchDebounceTimeout.value) {
