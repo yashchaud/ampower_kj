@@ -281,11 +281,16 @@ function getOrderQty(order) {
 }
 
 function getOrderWeight(order) {
-  return parseFloat(order.karigar_received_weight || order.item_weight || 0);
+  const weight = order.karigar_received_weight || order.item_weight;
+  if (weight === null || weight === undefined) return 0;
+  const num = parseFloat(weight);
+  return isNaN(num) ? 0 : num;
 }
 
 function formatWeight(w) {
-  return parseFloat(w || 0).toFixed(2);
+  if (w === null || w === undefined) return '0';
+  const num = parseFloat(w);
+  return isNaN(num) ? '0' : num.toFixed(2);
 }
 
 function getPartLabel(i) {

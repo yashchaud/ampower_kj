@@ -66,7 +66,7 @@ const sizeClasses = {
 };
 
 const variantClasses = {
-  primary: 'tw-bg-primary-700 tw-text-white hover:tw-bg-primary-800 tw-shadow-sm active:tw-scale-[0.98]',
+  primary: 'tw-bg-primary-600 tw-text-white hover:tw-bg-primary-500 focus:tw-bg-primary-600 focus:tw-ring-2 focus:tw-ring-primary-600/15 tw-shadow-sm active:tw-scale-[0.98]',
   secondary: 'tw-bg-white tw-text-slate-700 tw-border tw-border-slate-300 hover:tw-bg-slate-50 hover:tw-border-slate-400',
   ghost: 'tw-text-slate-600 hover:tw-bg-slate-100',
   danger: 'tw-bg-red-600 tw-text-white hover:tw-bg-red-700 tw-shadow-sm',

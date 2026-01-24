@@ -14,12 +14,8 @@ const PREFIX = '[CustomWorkflow]';
  * @returns {boolean}
  */
 function isDev() {
-  // Check esbuild/Vite env first
-  if (typeof import.meta !== 'undefined' && import.meta.env?.DEV) {
-    return true;
-  }
-  // Fall back to Frappe's developer_mode
-  if (typeof window !== 'undefined' && window.frappe?.boot?.developer_mode) {
+  // Check Frappe's developer_mode
+  if (typeof window !== 'undefined' && window.frappe && window.frappe.boot && window.frappe.boot.developer_mode) {
     return true;
   }
   return false;

@@ -56,10 +56,10 @@
           >
             <div
               v-if="isFiltersOpen"
-              class="tw-absolute tw-z-50 tw-mt-2 tw-left-0 tw-w-full sm:tw-w-[400px] tw-bg-white tw-rounded-xl tw-shadow-[0_20px_40px_-5px_rgba(0,0,0,0.05),0_8px_16px_-6px_rgba(0,0,0,0.05)] tw-border tw-border-slate-100 tw-overflow-hidden tw-transition-all tw-duration-300"
+              class="tw-fixed sm:tw-absolute tw-z-50 tw-inset-x-4 sm:tw-inset-x-auto tw-top-auto sm:tw-top-full tw-bottom-4 sm:tw-bottom-auto tw-mt-0 sm:tw-mt-2 tw-left-0 tw-right-0 sm:tw-right-auto tw-w-auto sm:tw-w-[400px] tw-max-h-[80vh] tw-overflow-y-auto tw-bg-white tw-rounded-xl tw-shadow-[0_20px_40px_-5px_rgba(0,0,0,0.15),0_8px_16px_-6px_rgba(0,0,0,0.1)] tw-border tw-border-slate-100 tw-transition-all tw-duration-300"
             >
               <!-- Content Padding -->
-              <div class="tw-p-8 tw-flex tw-flex-col tw-gap-8">
+              <div class="tw-p-5 sm:tw-p-8 tw-flex tw-flex-col tw-gap-6 sm:tw-gap-8">
                 <!-- Field 1: Customer Search -->
                 <div class="tw-flex tw-flex-col tw-gap-2 tw-group">
                   <label class="tw-text-[11px] tw-font-semibold tw-tracking-[0.15em] tw-text-slate-400 tw-uppercase">
@@ -116,10 +116,10 @@
               </div>
 
               <!-- Footer Actions -->
-              <div class="tw-px-8 tw-pb-8 tw-pt-2 tw-flex tw-items-center tw-justify-between">
+              <div class="tw-px-5 sm:tw-px-8 tw-pb-5 sm:tw-pb-8 tw-pt-2 tw-flex tw-flex-col sm:tw-flex-row tw-items-stretch sm:tw-items-center tw-justify-between tw-gap-3 sm:tw-gap-0">
                 <button
                   @click="clearFilters"
-                  class="tw-text-sm tw-font-medium tw-text-slate-400 hover:tw-text-slate-600 tw-transition-colors tw-px-2 tw-py-2 tw-rounded"
+                  class="tw-text-sm tw-font-medium tw-text-slate-400 hover:tw-text-slate-600 tw-transition-colors tw-px-2 tw-py-2 tw-rounded tw-order-2 sm:tw-order-1"
                   :class="{ 'tw-opacity-50 tw-cursor-not-allowed': activeFiltersCount === 0 }"
                   :disabled="activeFiltersCount === 0"
                 >
@@ -127,7 +127,7 @@
                 </button>
                 <button
                   @click="applyFilters"
-                  class="tw-bg-blue-600 hover:tw-bg-blue-600/90 tw-text-white tw-text-sm tw-font-medium tw-px-8 tw-py-2.5 tw-rounded-lg tw-shadow-lg tw-shadow-blue-600/20 tw-transition-all hover:tw-shadow-blue-600/30 active:tw-scale-[0.98]"
+                  class="tw-bg-primary-600 hover:tw-bg-primary-500 tw-text-white tw-text-sm tw-font-medium tw-px-6 sm:tw-px-8 tw-py-2.5 tw-rounded-lg tw-shadow-lg tw-shadow-primary-200/20 tw-transition-all hover:tw-shadow-primary-200/30 active:tw-scale-[0.98] tw-order-1 sm:tw-order-2"
                 >
                   Apply Filters
                 </button>
@@ -164,7 +164,7 @@
           >
             <div
               v-if="isColumnsOpen"
-              class="tw-absolute tw-z-50 tw-mt-2 tw-right-0 tw-w-full sm:tw-w-[360px] tw-flex tw-flex-col tw-rounded-xl tw-bg-white tw-shadow-[0_20px_40px_-10px_rgba(0,0,0,0.06),0_10px_20px_-5px_rgba(0,0,0,0.04)] tw-border tw-border-gray-100/50 tw-overflow-hidden"
+              class="tw-fixed sm:tw-absolute tw-z-50 tw-inset-x-4 sm:tw-inset-x-auto tw-top-auto sm:tw-top-full tw-bottom-4 sm:tw-bottom-auto tw-mt-0 sm:tw-mt-2 tw-right-0 tw-left-0 sm:tw-left-auto tw-w-auto sm:tw-w-[360px] tw-max-h-[80vh] tw-flex tw-flex-col tw-rounded-xl tw-bg-white tw-shadow-[0_20px_40px_-10px_rgba(0,0,0,0.15),0_10px_20px_-5px_rgba(0,0,0,0.1)] tw-border tw-border-gray-100/50 tw-overflow-hidden"
             >
               <!-- Search Header -->
               <div class="tw-px-4 tw-py-3 tw-border-b tw-border-gray-200/50 tw-bg-white tw-z-10">
@@ -742,14 +742,14 @@ function getStageInfo() {
 function requiresWeightEntry(fromStage, toStage) {
   // Incoming to Internal QA
   if (fromStage === 'Incoming' && toStage === 'Internal QA') return true;
-  // Ready to Delivered
-  if (fromStage === 'Ready' && toStage === 'Delivered') return true;
+  // Pending Delivery to Delivered
+  if (fromStage === 'Pending Delivery' && toStage === 'Delivered') return true;
   return false;
 }
 
 function getWeightType(fromStage, toStage) {
   if (fromStage === 'Incoming' && toStage === 'Internal QA') return 'received';
-  if (fromStage === 'Ready' && toStage === 'Delivered') return 'dispatch';
+  if (fromStage === 'Pending Delivery' && toStage === 'Delivered') return 'dispatch';
   return null;
 }
 
@@ -1003,11 +1003,13 @@ const handleModalSave = async (data) => {
 
   if (transitionType === 'received') {
     // Incoming to Internal QA
-    extraArgs.karigar_received_weight = parseFloat(data.grossWeight);
+    const weight = parseFloat(data.grossWeight);
+    extraArgs.karigar_received_weight = isNaN(weight) ? 0 : weight;
     extraArgs.receive_notes = data.remarks || '';
   } else if (transitionType === 'dispatch') {
     // Pending Delivery to Delivered
-    extraArgs.dispatch_weight = parseFloat(data.grossWeight);
+    const weight = parseFloat(data.grossWeight);
+    extraArgs.dispatch_weight = isNaN(weight) ? 0 : weight;
     extraArgs.qa_notes = data.remarks || '';
   }
 
@@ -1077,7 +1079,8 @@ const handleBulkWeightApply = async (data) => {
 
   if (results && results.length > 0) {
     const successCount = results.filter(r => r.success).length;
-    const totalWeightGrams = data.totalWeight.toFixed(2);
+    const weight = parseFloat(data.totalWeight);
+    const totalWeightGrams = isNaN(weight) ? '0' : weight.toFixed(2);
 
     props.frappe.show_alert({
       message: `${successCount} item(s) moved to ${stageInfo.next} with total weight ${totalWeightGrams}g distributed proportionally`,

@@ -93,7 +93,7 @@
                 Cancel
               </button>
               <button
-                class="tw-px-6 tw-py-2.5 tw-rounded-xl tw-bg-primary-600 tw-text-white tw-font-medium tw-text-sm tw-shadow-lg tw-shadow-primary-200/50 dark:tw-shadow-none hover:tw-bg-primary-700 dark:hover:tw-bg-white dark:hover:tw-text-gray-900 tw-transition-all tw-duration-200 focus:tw-outline-none focus:tw-ring-2 focus:tw-ring-offset-2 focus:tw-ring-primary-500 dark:tw-ring-offset-gray-900 tw-transform active:tw-scale-[0.98]"
+                class="tw-px-6 tw-py-2.5 tw-rounded-xl tw-bg-primary-600 tw-text-white tw-font-medium tw-text-sm tw-shadow-lg tw-shadow-primary-200/50 dark:tw-shadow-none hover:tw-bg-primary-500 dark:hover:tw-bg-primary-500 tw-transition-all tw-duration-200 focus:tw-outline-none focus:tw-ring-2 focus:tw-ring-offset-2 focus:tw-ring-primary-600/15 dark:tw-ring-offset-gray-900 tw-transform active:tw-scale-[0.98]"
                 @click="handleConfirm"
               >
                 Confirm Transition

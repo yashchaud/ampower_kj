@@ -376,8 +376,9 @@ const getInitials = (name) => {
 // getKarigarColor is now imported from utils/colors.js
 
 const formatWeight = (weight) => {
-  if (!weight) return '0.00';
-  return parseFloat(weight).toFixed(2);
+  if (weight === null || weight === undefined) return '0';
+  const num = parseFloat(weight);
+  return isNaN(num) ? '0' : num.toFixed(2);
 };
 
 const copyToClipboard = (text) => {

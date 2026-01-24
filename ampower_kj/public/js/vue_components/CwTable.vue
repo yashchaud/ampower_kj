@@ -183,7 +183,7 @@
               </slot>
             </td>
             <!-- Actions column -->
-            <td v-if="hasActions" class="tw-px-3 tw-py-2.5 tw-whitespace-nowrap tw-text-xs tw-text-gray-400" @click.stop>
+            <td v-if="hasActions" class="tw-px-3 tw-py-2.5 tw-whitespace-nowrap tw-text-xs tw-text-gray-400" @click.stop @dblclick.stop>
               <slot name="actions" :row="row">
                 <button
                   class="tw-p-1 tw-rounded hover:tw-bg-gray-100 dark:hover:tw-bg-slate-700 tw-text-gray-500 tw-transition-colors"

@@ -1,214 +1,293 @@
 <template>
   <Teleport to="body">
+    <!-- Backdrop -->
     <Transition
-      enter-active-class="tw-transition-all tw-duration-200 tw-ease-out"
+      enter-active-class="tw-transition-opacity tw-duration-300"
       enter-from-class="tw-opacity-0"
       enter-to-class="tw-opacity-100"
-      leave-active-class="tw-transition-all tw-duration-150 tw-ease-in"
+      leave-active-class="tw-transition-opacity tw-duration-200"
       leave-from-class="tw-opacity-100"
       leave-to-class="tw-opacity-0"
     >
       <div
         v-if="modelValue"
-        class="tw-fixed tw-inset-0 tw-z-[9999] tw-flex tw-items-center tw-justify-center tw-bg-black/50 tw-p-4"
-        @click.self="close"
+        class="tw-fixed tw-inset-0 tw-bg-gray-900/50 dark:tw-bg-black/70 tw-backdrop-blur-sm tw-z-[9998]"
+      ></div>
+    </Transition>
+
+    <!-- Modal -->
+    <Transition
+      enter-active-class="tw-transition-all tw-duration-300"
+      enter-from-class="tw-opacity-0 tw-scale-95"
+      enter-to-class="tw-opacity-100 tw-scale-100"
+      leave-active-class="tw-transition-all tw-duration-200"
+      leave-from-class="tw-opacity-100 tw-scale-100"
+      leave-to-class="tw-opacity-0 tw-scale-95"
+    >
+      <div
+        v-if="modelValue"
+        class="tw-fixed tw-inset-0 md:tw-inset-4 tw-z-[9999] tw-w-full md:tw-w-auto md:tw-max-w-7xl tw-h-[100dvh] md:tw-h-[700px] tw-mx-auto tw-my-0 md:tw-my-auto tw-bg-white dark:tw-bg-gray-900 md:tw-rounded-xl tw-shadow-none md:tw-shadow-2xl tw-overflow-hidden tw-flex tw-flex-col md:tw-flex-row"
       >
-        <Transition
-          enter-active-class="tw-transition-all tw-duration-200 tw-ease-out"
-          enter-from-class="tw-opacity-0 tw-scale-95"
-          enter-to-class="tw-opacity-100 tw-scale-100"
-          leave-active-class="tw-transition-all tw-duration-150 tw-ease-in"
-          leave-from-class="tw-opacity-100 tw-scale-100"
-          leave-to-class="tw-opacity-0 tw-scale-95"
-        >
-          <div
-            v-if="modelValue"
-            class="tw-w-full tw-max-w-4xl tw-bg-white tw-rounded-2xl tw-shadow-2xl tw-overflow-hidden tw-max-h-[90vh] tw-flex tw-flex-col"
-          >
-            <!-- Header -->
-            <div class="tw-px-6 tw-py-4 tw-border-b tw-bg-slate-50 tw-flex tw-items-center tw-justify-between">
-              <div>
-                <h2 class="tw-text-lg tw-font-bold tw-text-slate-800">
-                  Edit Item Values
-                  <span class="tw-text-sm tw-font-normal tw-text-slate-500">
-                    ({{ selectedOrders.length }} {{ selectedOrders.length === 1 ? 'Item' : 'Items' }} Selected)
-                  </span>
-                </h2>
-                <p class="tw-text-sm tw-text-slate-500 tw-mt-1">Select an item to edit its quantity</p>
-              </div>
-              <button
-                class="tw-text-slate-400 hover:tw-text-slate-600 tw-transition-colors"
-                @click="close"
+        <!-- Desktop Sidebar - Order Queue -->
+        <div class="tw-hidden md:tw-flex tw-w-64 tw-bg-gray-50 dark:tw-bg-gray-900 tw-border-r tw-border-gray-200 dark:tw-border-gray-700 tw-flex-col tw-h-full tw-flex-shrink-0">
+          <div class="tw-p-6 tw-border-b tw-border-gray-200 dark:tw-border-gray-700 tw-bg-gray-50/50 dark:tw-bg-gray-900/50 tw-backdrop-blur-sm tw-sticky tw-top-0">
+            <h2 class="tw-text-xs tw-font-bold tw-uppercase tw-tracking-wider tw-text-gray-500 dark:tw-text-gray-400 tw-mb-1">Order Queue</h2>
+            <p class="tw-text-sm tw-font-medium tw-text-gray-900 dark:tw-text-white tw-flex tw-items-center tw-gap-2">
+              <span class="material-symbols-outlined tw-text-base">format_list_bulleted</span>
+              {{ selectedOrders.length }} Selected
+            </p>
+          </div>
+
+          <div class="tw-flex-1 tw-overflow-y-auto custom-scrollbar tw-p-3 tw-space-y-2">
+            <button
+              v-for="(order, idx) in selectedOrders"
+              :key="order.id"
+              @click="selectedIndex = idx"
+              class="tw-w-full tw-text-left tw-relative tw-group"
+              :class="selectedIndex === idx ? 'tw-z-10' : 'tw-z-0'"
+            >
+              <div
+                v-if="selectedIndex === idx"
+                class="tw-absolute tw-inset-0 tw-bg-white dark:tw-bg-gray-800 tw-shadow-md tw-border-l-[3px] tw-border-primary-600 tw-rounded-r-lg tw-transform tw-scale-[1.02]"
+              ></div>
+              <div
+                class="tw-relative tw-p-3 tw-flex tw-items-center tw-justify-between tw-rounded-lg tw-transition-all"
+                :class="selectedIndex !== idx ? 'hover:tw-bg-white dark:hover:tw-bg-gray-800 tw-border tw-border-transparent hover:tw-border-gray-200 dark:hover:tw-border-gray-700' : 'tw-pl-4'"
               >
-                <span class="material-symbols-outlined tw-text-2xl">close</span>
-              </button>
-            </div>
-
-            <!-- Content -->
-            <div class="tw-flex tw-flex-1 tw-overflow-hidden">
-              <!-- Left Panel: Item List -->
-              <div class="tw-w-1/3 tw-border-r tw-bg-slate-50 tw-overflow-y-auto">
-                <div
-                  v-for="(order, idx) in selectedOrders"
-                  :key="order.id"
-                  class="tw-px-4 tw-py-3 tw-border-b tw-cursor-pointer tw-transition-all"
-                  :class="{
-                    'tw-bg-primary-50 tw-border-l-4 tw-border-l-primary-500': selectedIndex === idx,
-                    'hover:tw-bg-slate-100': selectedIndex !== idx
-                  }"
-                  @click="selectedIndex = idx"
-                >
-                  <div class="tw-text-sm tw-font-semibold tw-text-slate-800 tw-mb-1">
-                    {{ order.id }}
-                  </div>
-                  <div class="tw-text-xs tw-text-slate-500">
-                    {{ order.customer }}
-                  </div>
-                  <div class="tw-text-xs tw-text-slate-600 tw-mt-1">
-                    Qty: <span class="tw-font-medium">{{ order.qty }}</span>
-                  </div>
-                </div>
-
-                <div v-if="selectedOrders.length === 0" class="tw-px-4 tw-py-8 tw-text-center tw-text-slate-400">
-                  <span class="material-symbols-outlined tw-text-4xl tw-mb-2">inbox</span>
-                  <p class="tw-text-sm">No items selected</p>
-                </div>
-              </div>
-
-              <!-- Right Panel: Details & Split Input -->
-              <div class="tw-w-2/3 tw-p-6 tw-overflow-y-auto">
-                <template v-if="currentOrder">
-                  <!-- Order Info Card -->
-                  <div class="tw-bg-blue-50 tw-rounded-xl tw-p-4 tw-mb-6">
-                    <div class="tw-grid tw-grid-cols-2 tw-gap-4">
-                      <div>
-                        <span class="tw-text-xs tw-text-slate-500 tw-block tw-mb-1">Customer</span>
-                        <span class="tw-text-sm tw-font-medium tw-text-slate-800">
-                          {{ currentOrder.customer || 'N/A' }}
-                        </span>
-                      </div>
-                      <div>
-                        <span class="tw-text-xs tw-text-slate-500 tw-block tw-mb-1">Karigar</span>
-                        <span class="tw-text-sm tw-font-medium tw-text-slate-800">
-                          {{ currentOrder.karigar?.name || 'N/A' }}
-                        </span>
-                      </div>
-                      <div>
-                        <span class="tw-text-xs tw-text-slate-500 tw-block tw-mb-1">Item Code</span>
-                        <span class="tw-text-sm tw-font-medium tw-text-slate-800">
-                          {{ currentOrder.item_code || 'N/A' }}
-                        </span>
-                      </div>
-                      <div>
-                        <span class="tw-text-xs tw-text-slate-500 tw-block tw-mb-1">Item Details</span>
-                        <span class="tw-text-sm tw-font-medium tw-text-slate-800">
-                          {{ currentOrder.item_details || 'N/A' }}
-                        </span>
-                      </div>
-                      <div class="tw-col-span-2">
-                        <span class="tw-text-xs tw-text-slate-500 tw-block tw-mb-1">Total Quantity</span>
-                        <span class="tw-text-xl tw-font-bold tw-text-primary-600">
-                          {{ currentOrder.qty }}
-                        </span>
-                      </div>
-                    </div>
-                  </div>
-
-                  <!-- Split Quantity Section -->
-                  <div class="tw-mb-6">
-                    <label class="tw-block tw-text-sm tw-font-semibold tw-text-slate-700 tw-mb-2">
-                      Split Quantity *
-                    </label>
-                    <input
-                      v-model.number="splitQty"
-                      type="number"
-                      min="1"
-                      :max="currentOrder.qty - 1"
-                      class="tw-w-full tw-px-4 tw-py-3 tw-border tw-border-slate-300 tw-rounded-lg tw-text-sm focus:tw-border-primary-500 focus:tw-ring-2 focus:tw-ring-primary-100 tw-outline-none tw-transition-all"
-                      :class="{
-                        'tw-border-red-300 focus:tw-border-red-500 focus:tw-ring-red-100': !isValidSplit && splitQty !== null
-                      }"
-                      placeholder="Enter quantity to keep in original"
-                    />
-                    <p class="tw-text-xs tw-text-slate-500 tw-mt-2">
-                      Enter the quantity to keep in the original entry. The remaining quantity will be moved to a new entry.
-                    </p>
-
-                    <!-- Validation Messages -->
-                    <div v-if="splitQty !== null && !isValidSplit" class="tw-mt-2">
-                      <p v-if="splitQty <= 0" class="tw-text-xs tw-text-red-600">
-                        Split quantity must be greater than 0
-                      </p>
-                      <p v-if="splitQty >= currentOrder.qty" class="tw-text-xs tw-text-red-600">
-                        Split quantity must be less than total quantity ({{ currentOrder.qty }})
-                      </p>
-                    </div>
-
-                    <!-- Remaining Quantity Display -->
-                    <div v-if="isValidSplit" class="tw-mt-3 tw-p-3 tw-bg-emerald-50 tw-rounded-lg tw-border tw-border-emerald-200">
-                      <div class="tw-flex tw-items-center tw-justify-between tw-text-sm">
-                        <span class="tw-text-slate-600">Remaining quantity for new entry:</span>
-                        <span class="tw-font-bold tw-text-emerald-700 tw-text-lg">
-                          {{ currentOrder.qty - splitQty }}
-                        </span>
-                      </div>
-                    </div>
-                  </div>
-
-                  <!-- Warning Message -->
-                  <div class="tw-bg-amber-50 tw-border tw-border-amber-200 tw-rounded-lg tw-p-3 tw-mb-6">
-                    <div class="tw-flex tw-items-start tw-gap-2">
-                      <span class="material-symbols-outlined tw-text-amber-600 tw-text-xl">warning</span>
-                      <div class="tw-text-xs tw-text-amber-800">
-                        <p class="tw-font-semibold tw-mb-1">Splitting will:</p>
-                        <ul class="tw-list-disc tw-list-inside tw-space-y-1">
-                          <li>Keep {{ splitQty || 0 }} qty in the original entry</li>
-                          <li>Create a new entry with {{ splitQty ? currentOrder.qty - splitQty : 0 }} qty</li>
-                          <li>Both entries will maintain all other attributes</li>
-                        </ul>
-                      </div>
-                    </div>
-                  </div>
-
-                  <!-- Save Button -->
-                  <button
-                    class="tw-w-full tw-py-3 tw-px-4 tw-rounded-lg tw-font-semibold tw-text-white tw-transition-all tw-duration-200"
-                    :class="{
-                      'tw-bg-primary-500 hover:tw-bg-primary-600 tw-shadow-md hover:tw-shadow-lg': isValidSplit,
-                      'tw-bg-slate-300 tw-cursor-not-allowed': !isValidSplit
-                    }"
-                    :disabled="!isValidSplit"
-                    @click="handleSplit"
+                <div>
+                  <span
+                    class="tw-flex tw-items-center tw-gap-2 tw-text-xs tw-font-bold"
+                    :class="selectedIndex === idx ? 'tw-text-primary-600 dark:tw-text-blue-400' : 'tw-text-gray-500 dark:tw-text-gray-400 group-hover:tw-text-gray-800 dark:group-hover:tw-text-gray-200'"
                   >
-                    <span class="material-symbols-outlined tw-align-middle tw-mr-2">call_split</span>
-                    Split Item
-                  </button>
-                </template>
-
-                <!-- Empty State -->
-                <div v-else class="tw-flex tw-flex-col tw-items-center tw-justify-center tw-h-full tw-text-slate-400">
-                  <span class="material-symbols-outlined tw-text-6xl tw-mb-4">arrow_back</span>
-                  <p class="tw-text-sm">Select an item from the left panel to split</p>
+                    {{ order.id }}
+                    <span v-if="selectedIndex === idx" class="tw-w-1.5 tw-h-1.5 tw-rounded-full tw-bg-primary-600 tw-animate-pulse"></span>
+                  </span>
+                  <span
+                    class="tw-block tw-text-sm tw-font-mono tw-mt-0.5"
+                    :class="selectedIndex === idx ? 'tw-font-bold tw-text-gray-900 dark:tw-text-white' : 'tw-text-gray-500 dark:tw-text-gray-400'"
+                  >
+                    Qty: {{ order.qty }}
+                  </span>
                 </div>
-              </div>
-            </div>
-
-            <!-- Footer -->
-            <div class="tw-px-6 tw-py-4 tw-border-t tw-bg-slate-50 tw-flex tw-items-center tw-justify-between">
-              <div class="tw-text-xs tw-text-slate-500">
-                Item {{ selectedIndex + 1 }} of {{ selectedOrders.length }}
-              </div>
-              <div class="tw-flex tw-gap-3">
-                <button
-                  class="tw-px-4 tw-py-2 tw-border tw-border-slate-300 tw-rounded-lg tw-text-sm tw-font-medium tw-text-slate-700 hover:tw-bg-slate-100 tw-transition-colors"
-                  @click="close"
+                <span
+                  v-if="selectedIndex === idx"
+                  class="material-symbols-outlined tw-text-primary-600 tw-text-xl"
                 >
-                  Close
-                </button>
+                  arrow_right
+                </span>
+              </div>
+            </button>
+          </div>
+        </div>
+
+        <!-- Mobile Header -->
+        <div class="md:tw-hidden tw-flex-none tw-z-30 tw-bg-white dark:tw-bg-gray-900 tw-border-b tw-border-gray-200 dark:tw-border-gray-700 tw-shadow-sm">
+          <div class="tw-flex tw-items-center tw-justify-between tw-px-4 tw-py-3">
+            <div class="tw-flex tw-items-center tw-gap-3">
+              <button @click="close" class="tw-text-gray-500 dark:tw-text-gray-400 hover:tw-text-gray-700">
+                <span class="material-symbols-outlined">arrow_back</span>
+              </button>
+              <div>
+                <div class="tw-flex tw-items-center tw-gap-2">
+                  <span class="tw-text-sm tw-font-bold tw-text-gray-900 dark:tw-text-white">{{ currentOrder?.id || 'Order' }}</span>
+                  <span class="tw-inline-flex tw-items-center tw-px-2 tw-py-0.5 tw-rounded-full tw-text-[10px] tw-font-bold tw-bg-primary-600/10 tw-text-primary-600 dark:tw-bg-blue-900/30 dark:tw-text-blue-300">
+                    {{ selectedIndex + 1 }} of {{ selectedOrders.length }}
+                  </span>
+                </div>
               </div>
             </div>
           </div>
-        </Transition>
+
+          <!-- Mobile Order Chips -->
+          <div class="tw-flex tw-overflow-x-auto tw-gap-2 tw-px-4 tw-pb-3 no-scrollbar tw-items-center">
+            <button
+              v-for="(order, idx) in selectedOrders"
+              :key="order.id"
+              @click="selectedIndex = idx"
+              class="tw-flex-shrink-0 tw-px-3 tw-py-1.5 tw-rounded-full tw-text-xs tw-font-bold tw-whitespace-nowrap tw-border tw-transition-all"
+              :class="selectedIndex === idx
+                ? 'tw-bg-primary-600 tw-text-white tw-shadow-md tw-shadow-blue-500/20 tw-border-primary-600'
+                : 'tw-bg-gray-50 dark:tw-bg-gray-800 tw-text-gray-600 dark:tw-text-gray-300 tw-border-gray-200 dark:tw-border-gray-700'"
+            >
+              {{ order.id }} • {{ order.qty }}
+            </button>
+          </div>
+        </div>
+
+        <!-- Main Content -->
+        <div class="tw-flex-1 tw-flex tw-flex-col md:tw-flex-row tw-h-full tw-overflow-y-auto md:tw-overflow-hidden custom-scrollbar">
+          <!-- Left Panel - Order Info -->
+          <div class="tw-w-full md:tw-w-80 tw-bg-gray-50 dark:tw-bg-gray-800/50 md:tw-border-r tw-border-gray-200 dark:tw-border-gray-700 tw-flex tw-flex-col md:tw-h-full tw-overflow-hidden tw-flex-shrink-0">
+            <div class="tw-absolute tw-top-0 tw-left-0 tw-w-full tw-h-48 tw-bg-gradient-to-b tw-from-blue-50/50 tw-to-transparent dark:tw-from-blue-900/10 tw-pointer-events-none"></div>
+
+            <div class="tw-p-4 md:tw-p-8 tw-flex tw-flex-col tw-h-full tw-relative tw-z-10">
+              <div class="tw-bg-white dark:tw-bg-gray-800/50 md:tw-bg-transparent tw-rounded-xl tw-shadow-sm tw-border tw-border-gray-100 dark:tw-border-gray-700 md:tw-shadow-none md:tw-border-0 tw-p-5 md:tw-p-0 tw-flex tw-flex-col md:tw-h-full">
+
+                <!-- Desktop Header -->
+                <div class="tw-hidden md:tw-flex tw-justify-between tw-items-start tw-mb-8">
+                  <div>
+                    <h2 class="tw-text-xs tw-font-bold tw-uppercase tw-tracking-wider tw-text-gray-500 dark:tw-text-gray-400 tw-mb-1">Source Item</h2>
+                    <p class="tw-text-base tw-font-bold tw-text-gray-900 dark:tw-text-white tw-flex tw-items-center tw-gap-2">{{ currentOrder?.id || 'Order' }}</p>
+                  </div>
+                  <div class="tw-flex tw-items-center tw-gap-1.5 tw-bg-white dark:tw-bg-gray-800 tw-px-3 tw-py-1.5 tw-rounded-full tw-shadow-sm tw-border tw-border-gray-100 dark:tw-border-gray-700">
+                    <span class="tw-relative tw-flex tw-h-2 tw-w-2">
+                      <span class="tw-animate-ping tw-absolute tw-inline-flex tw-h-full tw-w-full tw-rounded-full tw-bg-primary-600 tw-opacity-75"></span>
+                      <span class="tw-relative tw-inline-flex tw-rounded-full tw-h-2 tw-w-2 tw-bg-primary-600"></span>
+                    </span>
+                    <span class="tw-text-xs tw-font-bold tw-text-gray-700 dark:tw-text-gray-200">{{ selectedIndex + 1 }} of {{ selectedOrders.length }}</span>
+                  </div>
+                </div>
+
+                <!-- Quantity Display -->
+                <div class="tw-flex-1 tw-flex tw-flex-row md:tw-flex-col tw-justify-between md:tw-justify-center tw-items-center tw-text-center tw-space-x-6 md:tw-space-x-0 md:tw-space-y-6">
+                  <div class="tw-relative tw-group tw-flex tw-flex-col tw-items-center">
+                    <div class="tw-absolute tw-inset-0 tw-bg-primary-600/5 tw-blur-3xl tw-rounded-full tw-transform tw-scale-150 tw-opacity-100"></div>
+                    <span class="material-symbols-outlined tw-text-4xl md:tw-text-5xl tw-text-gray-300 dark:tw-text-gray-600 tw-mb-2 md:tw-mb-4 tw-block">inventory_2</span>
+                    <div class="tw-text-left md:tw-text-center">
+                      <h3 class="tw-text-3xl md:tw-text-5xl tw-font-display tw-font-bold tw-text-gray-900 dark:tw-text-white tw-tracking-tight">
+                        {{ currentOrder?.qty || 0 }}<span class="tw-text-xl md:tw-text-2xl tw-text-gray-400 dark:tw-text-gray-500"> pcs</span>
+                      </h3>
+                      <p class="tw-text-[10px] md:tw-text-xs tw-text-gray-500 dark:tw-text-gray-400 tw-mt-1 tw-font-medium tw-uppercase tw-tracking-wide">Total Quantity</p>
+                    </div>
+                  </div>
+
+                  <!-- Order Details Grid -->
+                  <div v-if="currentOrder" class="tw-grid tw-grid-cols-1 md:tw-grid-cols-2 tw-gap-2 md:tw-gap-4 tw-w-32 md:tw-w-full md:tw-pt-8 md:tw-border-t tw-border-gray-200 dark:tw-border-gray-700">
+                    <div class="tw-text-center tw-p-2 md:tw-p-3 tw-rounded-lg tw-bg-gray-50 md:tw-bg-white dark:tw-bg-gray-900 md:dark:tw-bg-gray-800 tw-shadow-sm tw-border tw-border-gray-100 dark:tw-border-gray-700">
+                      <span class="tw-block tw-text-sm md:tw-text-lg tw-font-bold tw-text-gray-900 dark:tw-text-white tw-truncate">{{ currentOrder.item_code || 'N/A' }}</span>
+                      <span class="tw-text-[10px] md:tw-text-xs tw-text-gray-500 dark:tw-text-gray-400 tw-uppercase tw-tracking-wider">Item Code</span>
+                    </div>
+                    <div class="tw-text-center tw-p-2 md:tw-p-3 tw-rounded-lg tw-bg-gray-50 md:tw-bg-white dark:tw-bg-gray-900 md:dark:tw-bg-gray-800 tw-shadow-sm tw-border tw-border-gray-100 dark:tw-border-gray-700">
+                      <span class="tw-block tw-text-sm md:tw-text-lg tw-font-bold tw-text-gray-900 dark:tw-text-white tw-truncate">{{ currentOrder.customer || 'N/A' }}</span>
+                      <span class="tw-text-[10px] md:tw-text-xs tw-text-gray-500 dark:tw-text-gray-400 tw-uppercase tw-tracking-wider">Customer</span>
+                    </div>
+                  </div>
+                </div>
+
+                <div class="tw-hidden md:tw-block tw-mt-auto tw-pt-6 tw-text-center">
+                  <div class="tw-inline-flex tw-items-center tw-gap-2 tw-px-3 tw-py-1.5 tw-rounded-full tw-bg-blue-50 dark:tw-bg-blue-900/20 tw-text-blue-700 dark:tw-text-blue-300 tw-text-xs tw-font-semibold">
+                    Ready to Split
+                  </div>
+                </div>
+              </div>
+            </div>
+          </div>
+
+          <!-- Right Panel - Split Form -->
+          <div class="tw-flex-1 tw-flex tw-flex-col tw-relative md:tw-h-full tw-bg-white dark:tw-bg-gray-900 tw-w-full">
+            <!-- Close Button (Desktop) -->
+            <button
+              @click="close"
+              class="tw-absolute tw-top-6 tw-right-6 tw-text-gray-400 hover:tw-text-gray-600 dark:hover:tw-text-gray-300 tw-transition-colors tw-z-30 tw-p-1 tw-rounded-full hover:tw-bg-gray-100 dark:hover:tw-bg-gray-800 tw-hidden md:tw-block"
+            >
+              <span class="material-symbols-outlined tw-text-2xl">close</span>
+            </button>
+
+            <div class="tw-px-4 tw-py-4 md:tw-px-12 md:tw-pt-10 md:tw-pb-4">
+              <h1 class="tw-text-3xl tw-font-display tw-font-bold tw-text-gray-900 dark:tw-text-white tw-mb-6 tw-hidden md:tw-block">
+                Split {{ currentOrder?.id || 'Order' }}
+              </h1>
+            </div>
+
+            <!-- Split Form -->
+            <div class="tw-flex-1 tw-overflow-visible md:tw-overflow-y-auto custom-scrollbar tw-px-4 md:tw-px-12 tw-py-2 md:tw-py-6 tw-space-y-6 md:tw-space-y-8 tw-pb-24 md:tw-pb-6">
+
+              <!-- Part A -->
+              <div class="tw-group tw-flex tw-flex-col md:tw-flex-row tw-items-start md:tw-items-end tw-gap-2 md:tw-gap-6 tw-w-full tw-bg-gray-50 dark:tw-bg-gray-800/50 md:tw-bg-transparent tw-p-4 md:tw-p-0 tw-rounded-xl tw-border tw-border-gray-100 dark:tw-border-gray-800 md:tw-border-0">
+                <div class="tw-hidden sm:tw-flex tw-items-center tw-justify-center tw-w-8 tw-h-12 tw-text-xl tw-font-bold tw-text-gray-300 dark:tw-text-gray-600 tw-select-none">A</div>
+                <div class="sm:tw-hidden tw-text-xs tw-font-bold tw-text-gray-400 dark:tw-text-gray-500 tw-mb-1">PART A (Keep)</div>
+
+                <div class="tw-flex-1 tw-w-full">
+                  <div class="tw-border-b-2 tw-border-gray-200 dark:tw-border-gray-700 group-focus-within:tw-border-primary-600 tw-transition-colors tw-pb-1">
+                    <label class="tw-block tw-text-xs tw-font-bold tw-text-gray-400 dark:tw-text-gray-500 tw-mb-1 tw-uppercase tw-tracking-wide">Quantity to Keep</label>
+                    <div class="tw-flex tw-items-baseline">
+                      <input
+                        v-model.number="splitQty"
+                        type="number"
+                        min="1"
+                        :max="currentOrder ? currentOrder.qty - 1 : 0"
+                        class="tw-w-full tw-bg-transparent tw-border-none tw-p-0 tw-text-2xl tw-font-display tw-font-bold tw-text-gray-900 dark:tw-text-white placeholder:tw-text-gray-300 focus:tw-ring-0"
+                        :class="{'tw-text-red-600': splitQty !== null && !isValidSplit}"
+                        placeholder="0"
+                      />
+                      <span class="tw-text-base tw-text-gray-400 tw-font-medium tw-ml-2">pcs</span>
+                    </div>
+                  </div>
+                  <p v-if="splitQty !== null && !isValidSplit" class="tw-text-xs tw-text-red-600 tw-mt-1">
+                    Enter a value between 1 and {{ currentOrder ? currentOrder.qty - 1 : 0 }}
+                  </p>
+                </div>
+              </div>
+
+              <!-- Part B -->
+              <div class="tw-group tw-flex tw-flex-col md:tw-flex-row tw-items-start md:tw-items-end tw-gap-2 md:tw-gap-6 tw-w-full tw-bg-gray-50 dark:tw-bg-gray-800/50 md:tw-bg-transparent tw-p-4 md:tw-p-0 tw-rounded-xl tw-border tw-border-gray-100 dark:tw-border-gray-800 md:tw-border-0">
+                <div class="tw-hidden sm:tw-flex tw-items-center tw-justify-center tw-w-8 tw-h-12 tw-text-xl tw-font-bold tw-text-gray-300 dark:tw-text-gray-600 tw-select-none">B</div>
+                <div class="sm:tw-hidden tw-text-xs tw-font-bold tw-text-gray-400 dark:tw-text-gray-500 tw-mb-1">PART B (New Entry)</div>
+
+                <div class="tw-flex-1 tw-w-full">
+                  <div class="tw-border-b-2 tw-border-gray-200 dark:tw-border-gray-700 tw-pb-1">
+                    <label class="tw-block tw-text-xs tw-font-bold tw-text-gray-400 dark:tw-text-gray-500 tw-mb-1 tw-uppercase tw-tracking-wide">New Entry Quantity</label>
+                    <div class="tw-flex tw-items-baseline">
+                      <div class="tw-w-full tw-text-2xl tw-font-display tw-font-bold tw-text-gray-900 dark:tw-text-white">
+                        {{ isValidSplit && currentOrder ? currentOrder.qty - splitQty : 0 }}
+                      </div>
+                      <span class="tw-text-base tw-text-gray-400 tw-font-medium tw-ml-2">pcs</span>
+                    </div>
+                  </div>
+                  <p class="tw-text-xs tw-text-gray-500 dark:tw-text-gray-400 tw-mt-1">Automatically calculated</p>
+                </div>
+              </div>
+
+              <!-- Info Box -->
+              <div v-if="isValidSplit" class="tw-bg-emerald-50 dark:tw-bg-emerald-900/20 tw-border tw-border-emerald-200 dark:tw-border-emerald-800/30 tw-rounded-lg tw-p-4">
+                <div class="tw-flex tw-items-start tw-gap-3">
+                  <span class="material-symbols-outlined tw-text-emerald-600 dark:tw-text-emerald-400 tw-text-xl">check_circle</span>
+                  <div class="tw-text-xs tw-text-emerald-800 dark:tw-text-emerald-200">
+                    <p class="tw-font-semibold tw-mb-2">Split Preview:</p>
+                    <ul class="tw-space-y-1">
+                      <li>• Original entry will keep <strong>{{ splitQty }} pcs</strong></li>
+                      <li>• New entry will have <strong>{{ currentOrder.qty - splitQty }} pcs</strong></li>
+                      <li>• Both entries will maintain all other attributes</li>
+                    </ul>
+                  </div>
+                </div>
+              </div>
+            </div>
+
+            <!-- Footer Actions -->
+            <div class="tw-sticky tw-bottom-0 tw-z-30 tw-px-4 md:tw-px-12 tw-py-4 md:tw-py-6 tw-border-t tw-border-gray-200 dark:tw-border-gray-800 tw-bg-white dark:tw-bg-gray-900 md:tw-rounded-br-xl tw-shadow-[0_-4px_6px_-1px_rgba(0,0,0,0.05)] md:tw-shadow-none">
+              <div class="tw-flex tw-flex-row md:tw-flex-row tw-justify-between tw-items-center tw-gap-4 md:tw-gap-6">
+                <div class="tw-text-sm tw-flex tw-flex-col md:tw-flex-row md:tw-items-center tw-gap-1 md:tw-gap-3">
+                  <div class="tw-flex tw-items-center tw-gap-2">
+                    <span class="tw-text-gray-500 dark:tw-text-gray-400 tw-font-medium">Status:</span>
+                    <span v-if="isValidSplit" class="tw-font-mono tw-font-bold tw-text-green-600 dark:tw-text-green-400 tw-text-base tw-flex tw-items-center tw-gap-1">
+                      <span class="material-symbols-outlined tw-text-base">check_circle</span>
+                      Valid
+                    </span>
+                    <span v-else class="tw-font-mono tw-font-bold tw-text-gray-400 dark:tw-text-gray-600 tw-text-base">Pending</span>
+                  </div>
+                </div>
+
+                <div class="tw-flex tw-items-center tw-gap-3 md:tw-gap-4 tw-w-auto sm:tw-justify-end">
+                  <button
+                    @click="close"
+                    class="tw-hidden md:tw-block tw-text-sm tw-font-medium tw-text-gray-500 dark:tw-text-gray-400 hover:tw-text-gray-900 dark:hover:tw-text-white tw-transition-colors tw-px-3 tw-py-2 tw-rounded hover:tw-bg-gray-100 dark:hover:tw-bg-gray-800"
+                  >
+                    Cancel
+                  </button>
+                  <button
+                    @click="handleSplit"
+                    :disabled="!isValidSplit"
+                    class="tw-bg-primary-600 hover:tw-bg-primary-500 tw-text-white tw-text-sm tw-font-semibold tw-py-3 tw-px-6 md:tw-px-8 tw-rounded-lg tw-shadow-lg tw-shadow-blue-500/20 tw-transition-all tw-transform active:tw-scale-95 tw-flex tw-items-center tw-gap-2 tw-whitespace-nowrap disabled:tw-opacity-50 disabled:tw-cursor-not-allowed disabled:tw-transform-none"
+                  >
+                    <span class="material-symbols-outlined tw-text-lg">call_split</span>
+                    Split Item
+                  </button>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
       </div>
     </Transition>
   </Teleport>
@@ -277,8 +356,8 @@ function handleSplit() {
 
   props.frappe.confirm(
     `This will split the entry "${currentOrder.value.id}" into two:<br><br>` +
-    `• Original entry: <strong>${splitQty.value} qty</strong><br>` +
-    `• New entry: <strong>${remainingQty} qty</strong><br><br>` +
+    `• Original entry: <strong>${splitQty.value} pcs</strong><br>` +
+    `• New entry: <strong>${remainingQty} pcs</strong><br><br>` +
     `Do you want to continue?`,
     () => {
       emit('split-complete', {
@@ -286,6 +365,13 @@ function handleSplit() {
         splitQty: splitQty.value,
         remainingQty: remainingQty
       });
+
+      // Move to next item or close if this was the last one
+      if (selectedIndex.value < props.selectedOrders.length - 1) {
+        selectedIndex.value++;
+      } else {
+        close();
+      }
     }
   );
 }
@@ -298,22 +384,32 @@ function close() {
 
 <style scoped>
 /* Custom scrollbar */
-.tw-overflow-y-auto::-webkit-scrollbar {
-  width: 6px;
+.custom-scrollbar::-webkit-scrollbar {
+  width: 4px;
+  height: 4px;
 }
 
-.tw-overflow-y-auto::-webkit-scrollbar-track {
-  background: #f1f5f9;
-  border-radius: 3px;
+.custom-scrollbar::-webkit-scrollbar-track {
+  background: transparent;
 }
 
-.tw-overflow-y-auto::-webkit-scrollbar-thumb {
-  background: #cbd5e1;
-  border-radius: 3px;
+.custom-scrollbar::-webkit-scrollbar-thumb {
+  background-color: #cbd5e1;
+  border-radius: 20px;
 }
 
-.tw-overflow-y-auto::-webkit-scrollbar-thumb:hover {
-  background: #94a3b8;
+.dark .custom-scrollbar::-webkit-scrollbar-thumb {
+  background-color: #4b5563;
+}
+
+/* No scrollbar for horizontal scroll */
+.no-scrollbar::-webkit-scrollbar {
+  display: none;
+}
+
+.no-scrollbar {
+  -ms-overflow-style: none;
+  scrollbar-width: none;
 }
 
 /* Number input remove arrows */
