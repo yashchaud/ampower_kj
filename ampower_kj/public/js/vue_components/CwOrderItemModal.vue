@@ -381,6 +381,7 @@ const formatWeight = (weight) => {
   return isNaN(num) ? '0' : num.toFixed(2);
 };
 
+
 const copyToClipboard = (text) => {
   navigator.clipboard.writeText(text).then(() => {
     if (props.frappe) {

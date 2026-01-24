@@ -1,7 +1,7 @@
 <template>
   <div class="tw-relative tw-inline-block" ref="dropdownRef">
     <!-- Trigger button -->
-    <div @click="toggle">
+    <div @click="toggle" ref="triggerRef">
       <slot name="trigger">
         <CwButton
           :variant="buttonVariant"
@@ -15,23 +15,24 @@
 
     <!-- Backdrop -->
     <Teleport to="body">
-      <div v-if="isOpen" class="tw-fixed tw-inset-0 tw-z-40" @click="close"></div>
+      <div v-if="isOpen" class="tw-fixed tw-inset-0 tw-z-[79]" @click="close"></div>
     </Teleport>
 
     <!-- Dropdown menu -->
-    <Transition
-      enter-active-class="tw-transition tw-ease-out tw-duration-200"
-      enter-from-class="tw-opacity-0 tw-scale-95"
-      enter-to-class="tw-opacity-100 tw-scale-100"
-      leave-active-class="tw-transition tw-ease-in tw-duration-150"
-      leave-from-class="tw-opacity-100 tw-scale-100"
-      leave-to-class="tw-opacity-0 tw-scale-95"
-    >
-      <div
-        v-if="isOpen"
-        class="tw-absolute tw-z-50 tw-mt-2 tw-bg-white tw-rounded-xl tw-shadow-dropdown tw-border tw-border-slate-200 tw-py-2 tw-min-w-[200px]"
-        :class="[alignClass, widthClass]"
+    <Teleport to="body">
+      <Transition
+        enter-active-class="tw-transition tw-ease-out tw-duration-200"
+        enter-from-class="tw-opacity-0 tw-scale-95"
+        enter-to-class="tw-opacity-100 tw-scale-100"
+        leave-active-class="tw-transition tw-ease-in tw-duration-150"
+        leave-from-class="tw-opacity-100 tw-scale-100"
+        leave-to-class="tw-opacity-0 tw-scale-95"
       >
+        <div
+          v-if="isOpen"
+          :style="dropdownStyle"
+          class="tw-fixed tw-z-[80] tw-bg-white tw-rounded-xl tw-shadow-dropdown tw-border tw-border-slate-200 tw-py-2 tw-min-w-[200px]"
+        >
         <!-- Header -->
         <div v-if="title" class="tw-px-4 tw-py-2 tw-border-b tw-border-slate-100">
           <p class="tw-text-xs tw-font-semibold tw-text-slate-500 tw-uppercase tw-tracking-wider">
@@ -75,11 +76,12 @@
         </slot>
       </div>
     </Transition>
+    </Teleport>
   </div>
 </template>
 
 <script setup>
-import { ref, computed } from 'vue';
+import { ref, computed, watch, nextTick } from 'vue';
 import CwButton from './CwButton.vue';
 
 const props = defineProps({
@@ -120,6 +122,7 @@ const emit = defineEmits(['select']);
 
 const isOpen = ref(false);
 const dropdownRef = ref(null);
+const triggerRef = ref(null);
 
 const toggle = () => {
   isOpen.value = !isOpen.value;
@@ -135,10 +138,36 @@ const selectItem = (item) => {
   close();
 };
 
-const alignClass = computed(() => props.align === 'left' ? 'tw-left-0' : 'tw-right-0');
+const dropdownStyle = computed(() => {
+  if (!triggerRef.value) return {};
 
-const widthClass = computed(() =>
-  props.width === 'full' ? 'tw-w-full' :
-  props.width === 'trigger' ? 'tw-min-w-full' : ''
-);
+  const rect = triggerRef.value.getBoundingClientRect();
+  const style = {
+    top: `${rect.bottom + 8}px`, // 8px spacing below trigger
+  };
+
+  // Align based on prop
+  if (props.align === 'right') {
+    style.right = `${window.innerWidth - rect.right}px`;
+  } else {
+    style.left = `${rect.left}px`;
+  }
+
+  // Width based on prop
+  if (props.width === 'full') {
+    style.width = '100%';
+  } else if (props.width === 'trigger') {
+    style.minWidth = `${rect.width}px`;
+  }
+
+  return style;
+});
+
+// Recalculate position when dropdown opens
+watch(isOpen, async (newVal) => {
+  if (newVal) {
+    await nextTick();
+    // Force re-computation of style
+  }
+});
 </script>

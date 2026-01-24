@@ -1,5 +1,5 @@
 <template>
-  <div class="tw-h-full tw-bg-white dark:tw-bg-slate-800 tw-border tw-border-gray-200 dark:tw-border-gray-700 tw-rounded-lg tw-shadow-sm tw-flex tw-flex-col tw-relative">
+  <div class="tw-h-full tw-min-h-[400px] md:tw-min-h-0 tw-bg-white dark:tw-bg-slate-800 tw-border tw-border-gray-200 dark:tw-border-gray-700 tw-rounded-lg tw-shadow-sm tw-flex tw-flex-col tw-relative">
     <!-- Keyboard Shortcuts Hint -->
     <div
       v-if="showKeyboardHint"
@@ -101,10 +101,10 @@
     <div class="tw-overflow-x-auto tw-overflow-y-auto custom-scroll no-scrollbar-mobile tw-flex-1 tw-relative" tabindex="0" @keydown="handleKeyDown">
       <table class="tw-min-w-full tw-divide-y tw-divide-gray-200 dark:tw-divide-gray-700 tw-border-separate tw-border-spacing-0">
         <thead class="tw-bg-gray-50 dark:tw-bg-slate-800">
-          <tr>
+          <tr class="tw-h-14">
             <!-- Checkbox column -->
-            <th v-if="selectable" scope="col" class="tw-sticky tw-top-0 tw-z-10 tw-bg-gray-50 dark:tw-bg-slate-800 tw-px-4 tw-py-3 tw-text-center tw-w-10 tw-border-b tw-border-gray-200 dark:tw-border-gray-700">
-              <div class="tw-flex tw-items-center tw-justify-center">
+            <th v-if="selectable" scope="col" class="tw-sticky tw-top-0 tw-z-10 tw-bg-gray-50 dark:tw-bg-slate-800 tw-px-4 tw-text-center tw-w-10 tw-border-b tw-border-gray-200 dark:tw-border-gray-700 tw-align-middle">
+              <div class="tw-flex tw-items-center tw-justify-center tw-h-full">
                 <input
                   ref="selectAllRef"
                   type="checkbox"
@@ -120,12 +120,12 @@
               v-for="col in columns"
               :key="col.key"
               scope="col"
-              class="tw-sticky tw-top-0 tw-z-10 tw-bg-gray-50 dark:tw-bg-slate-800 tw-px-3 tw-py-3 tw-text-center tw-text-[11px] tw-font-bold tw-text-slate-500 dark:tw-text-slate-400 tw-uppercase tw-tracking-wider tw-border-b tw-border-gray-200 dark:tw-border-gray-700 group hover:tw-bg-gray-100 dark:hover:tw-bg-slate-700 tw-transition-colors"
-              :class="[col.headerClass, col.sortable ? 'tw-cursor-pointer' : '']"
+              class="tw-sticky tw-top-0 tw-z-10 tw-bg-gray-50 dark:tw-bg-slate-800 tw-px-3 tw-text-[11px] tw-font-bold tw-text-slate-500 dark:tw-text-slate-400 tw-uppercase tw-tracking-wider tw-border-b tw-border-gray-200 dark:tw-border-gray-700 group hover:tw-bg-gray-100 dark:hover:tw-bg-slate-700 tw-transition-colors tw-align-middle"
+              :class="[getHeaderAlignmentClass(col), col.headerClass, col.sortable ? 'tw-cursor-pointer' : '']"
               :style="col.width ? { width: col.width } : {}"
               @click="col.sortable && handleSort(col.key)"
             >
-              <div class="tw-flex tw-items-center tw-justify-center">
+              <div class="tw-flex tw-items-center tw-h-full" :class="getHeaderFlexAlignment(col)">
                 {{ col.label }}
                 <span
                   v-if="col.sortable"
@@ -133,12 +133,6 @@
                 >
                   {{ getSortIcon(col.key) }}
                 </span>
-              </div>
-            </th>
-            <!-- Actions column -->
-            <th v-if="hasActions" scope="col" class="tw-sticky tw-top-0 tw-z-10 tw-bg-gray-50 dark:tw-bg-slate-800 tw-px-3 tw-py-3 tw-text-center tw-text-[11px] tw-font-bold tw-text-slate-500 dark:tw-text-slate-400 tw-uppercase tw-tracking-wider tw-border-b tw-border-gray-200 dark:tw-border-gray-700 group hover:tw-bg-gray-100 dark:hover:tw-bg-slate-700 tw-transition-colors">
-              <div class="tw-flex tw-items-center tw-justify-center">
-                Actions
               </div>
             </th>
           </tr>
@@ -156,7 +150,7 @@
               index % 2 === 1 ? 'tw-bg-slate-50/30 dark:tw-bg-slate-800/20' : ''
             ]"
             @click="handleRowClick(row, index, $event)"
-            @dblclick="emit('row-dblclick', row)"
+            @dblclick="handleRowDblClick(row)"
           >
             <!-- Checkbox column -->
             <td v-if="selectable" class="tw-px-4 tw-py-2.5 tw-whitespace-nowrap" @click.stop>
@@ -183,16 +177,6 @@
               </slot>
             </td>
             <!-- Actions column -->
-            <td v-if="hasActions" class="tw-px-3 tw-py-2.5 tw-whitespace-nowrap tw-text-xs tw-text-gray-400" @click.stop @dblclick.stop>
-              <slot name="actions" :row="row">
-                <button
-                  class="tw-p-1 tw-rounded hover:tw-bg-gray-100 dark:hover:tw-bg-slate-700 tw-text-gray-500 tw-transition-colors"
-                  @click="emit('action-click', row)"
-                >
-                  <span class="material-symbols-outlined tw-text-[18px]">more_horiz</span>
-                </button>
-              </slot>
-            </td>
           </tr>
           <tr v-else>
             <td :colspan="totalColumns" class="tw-px-4 tw-py-12 tw-text-center tw-text-slate-500">
@@ -456,6 +440,60 @@ const handleSort = (key) => {
   emit('sort-change', { key, order: newOrder });
 };
 
+// Helper function to get header alignment class based on cell alignment
+const getHeaderAlignmentClass = (col) => {
+  // Check if cellClass contains text-alignment classes
+  if (col.cellClass) {
+    if (col.cellClass.includes('tw-text-right')) {
+      return 'tw-text-right';
+    }
+    if (col.cellClass.includes('tw-text-left')) {
+      return 'tw-text-left';
+    }
+  }
+  // Check headerClass for explicit alignment
+  if (col.headerClass) {
+    if (col.headerClass.includes('tw-text-right')) {
+      return 'tw-text-right';
+    }
+    if (col.headerClass.includes('tw-text-left')) {
+      return 'tw-text-left';
+    }
+    if (col.headerClass.includes('tw-text-center')) {
+      return 'tw-text-center';
+    }
+  }
+  // Default to center
+  return 'tw-text-center';
+};
+
+// Helper function to get flex alignment for header content
+const getHeaderFlexAlignment = (col) => {
+  // Check if cellClass contains text-alignment classes
+  if (col.cellClass) {
+    if (col.cellClass.includes('tw-text-right')) {
+      return 'tw-justify-end';
+    }
+    if (col.cellClass.includes('tw-text-left')) {
+      return 'tw-justify-start';
+    }
+  }
+  // Check headerClass for explicit alignment
+  if (col.headerClass) {
+    if (col.headerClass.includes('tw-text-right')) {
+      return 'tw-justify-end';
+    }
+    if (col.headerClass.includes('tw-text-left')) {
+      return 'tw-justify-start';
+    }
+    if (col.headerClass.includes('tw-text-center')) {
+      return 'tw-justify-center';
+    }
+  }
+  // Default to center
+  return 'tw-justify-center';
+};
+
 // Keyboard navigation
 const handleRowClick = (row, index, event) => {
   focusedRowIndex.value = index;
@@ -488,6 +526,13 @@ const handleRowClick = (row, index, event) => {
 
   lastSelectedIndex.value = index;
   emit('row-click', row);
+};
+
+// Double-click toggles checkbox selection
+const handleRowDblClick = (row) => {
+  if (props.selectable) {
+    toggleSelect(row);
+  }
 };
 
 const handleKeyDown = (event) => {

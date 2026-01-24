@@ -81,10 +81,10 @@
         </div>
 
         <!-- Mobile Header -->
-        <div class="md:tw-hidden tw-flex-none tw-z-30 tw-bg-white dark:tw-bg-gray-900 tw-border-b tw-border-gray-200 dark:tw-border-gray-700 tw-shadow-sm">
+        <div class="md:tw-hidden tw-flex-none tw-bg-white dark:tw-bg-gray-900 tw-border-b tw-border-gray-200 dark:tw-border-gray-700 tw-shadow-sm tw-sticky tw-top-0 tw-z-50">
           <div class="tw-flex tw-items-center tw-justify-between tw-px-4 tw-py-3">
             <div class="tw-flex tw-items-center tw-gap-3">
-              <button @click="close" class="tw-text-gray-500 dark:tw-text-gray-400 hover:tw-text-gray-700">
+              <button @click="close" class="tw-text-gray-500 dark:tw-text-gray-400 hover:tw-text-gray-700 tw-transition-colors">
                 <span class="material-symbols-outlined">arrow_back</span>
               </button>
               <div>
@@ -96,10 +96,13 @@
                 </div>
               </div>
             </div>
+            <button @click="close" class="tw-text-gray-400 hover:tw-text-gray-600 dark:hover:tw-text-gray-300 tw-p-1 tw-rounded-full hover:tw-bg-gray-100 dark:hover:tw-bg-gray-800 tw-transition-colors">
+              <span class="material-symbols-outlined">close</span>
+            </button>
           </div>
 
           <!-- Mobile Order Chips -->
-          <div class="tw-flex tw-overflow-x-auto tw-gap-2 tw-px-4 tw-pb-3 no-scrollbar tw-items-center">
+          <div class="tw-flex tw-overflow-x-auto tw-gap-2 tw-px-4 tw-pb-3 no-scrollbar tw-items-center tw-bg-white dark:tw-bg-gray-900">
             <button
               v-for="(order, idx) in selectedOrders"
               :key="order.id"
@@ -120,7 +123,7 @@
           <div class="tw-w-full md:tw-w-80 tw-bg-gray-50 dark:tw-bg-gray-800/50 md:tw-border-r tw-border-gray-200 dark:tw-border-gray-700 tw-flex tw-flex-col md:tw-h-full tw-overflow-hidden tw-flex-shrink-0">
             <div class="tw-absolute tw-top-0 tw-left-0 tw-w-full tw-h-48 tw-bg-gradient-to-b tw-from-blue-50/50 tw-to-transparent dark:tw-from-blue-900/10 tw-pointer-events-none"></div>
 
-            <div class="tw-p-4 md:tw-p-8 tw-flex tw-flex-col tw-h-full tw-relative tw-z-10">
+            <div class="tw-p-4 md:tw-p-8 tw-flex tw-flex-col tw-h-full tw-relative">
               <div class="tw-bg-white dark:tw-bg-gray-800/50 md:tw-bg-transparent tw-rounded-xl tw-shadow-sm tw-border tw-border-gray-100 dark:tw-border-gray-700 md:tw-shadow-none md:tw-border-0 tw-p-5 md:tw-p-0 tw-flex tw-flex-col md:tw-h-full">
 
                 <!-- Desktop Header -->
@@ -158,8 +161,8 @@
                       <span class="tw-text-[10px] md:tw-text-xs tw-text-gray-500 dark:tw-text-gray-400 tw-uppercase tw-tracking-wider">Item Code</span>
                     </div>
                     <div class="tw-text-center tw-p-2 md:tw-p-3 tw-rounded-lg tw-bg-gray-50 md:tw-bg-white dark:tw-bg-gray-900 md:dark:tw-bg-gray-800 tw-shadow-sm tw-border tw-border-gray-100 dark:tw-border-gray-700">
-                      <span class="tw-block tw-text-sm md:tw-text-lg tw-font-bold tw-text-gray-900 dark:tw-text-white tw-truncate">{{ currentOrder.customer || 'N/A' }}</span>
-                      <span class="tw-text-[10px] md:tw-text-xs tw-text-gray-500 dark:tw-text-gray-400 tw-uppercase tw-tracking-wider">Customer</span>
+                      <span class="tw-block tw-text-sm md:tw-text-lg tw-font-bold tw-text-gray-900 dark:tw-text-white tw-truncate">{{ currentOrder.texture || 'N/A' }}</span>
+                      <span class="tw-text-[10px] md:tw-text-xs tw-text-gray-500 dark:tw-text-gray-400 tw-uppercase tw-tracking-wider">Texture</span>
                     </div>
                   </div>
                 </div>
@@ -178,7 +181,7 @@
             <!-- Close Button (Desktop) -->
             <button
               @click="close"
-              class="tw-absolute tw-top-6 tw-right-6 tw-text-gray-400 hover:tw-text-gray-600 dark:hover:tw-text-gray-300 tw-transition-colors tw-z-30 tw-p-1 tw-rounded-full hover:tw-bg-gray-100 dark:hover:tw-bg-gray-800 tw-hidden md:tw-block"
+              class="tw-absolute tw-top-6 tw-right-6 tw-z-50 tw-text-gray-400 hover:tw-text-gray-600 dark:hover:tw-text-gray-300 tw-transition-colors tw-p-2 tw-rounded-full hover:tw-bg-gray-100 dark:hover:tw-bg-gray-800 tw-hidden md:tw-block"
             >
               <span class="material-symbols-outlined tw-text-2xl">close</span>
             </button>
@@ -255,7 +258,7 @@
             </div>
 
             <!-- Footer Actions -->
-            <div class="tw-sticky tw-bottom-0 tw-z-30 tw-px-4 md:tw-px-12 tw-py-4 md:tw-py-6 tw-border-t tw-border-gray-200 dark:tw-border-gray-800 tw-bg-white dark:tw-bg-gray-900 md:tw-rounded-br-xl tw-shadow-[0_-4px_6px_-1px_rgba(0,0,0,0.05)] md:tw-shadow-none">
+            <div class="tw-sticky tw-bottom-0 tw-px-4 md:tw-px-12 tw-py-4 md:tw-py-6 tw-border-t tw-border-gray-200 dark:tw-border-gray-800 tw-bg-white dark:tw-bg-gray-900 md:tw-rounded-br-xl tw-shadow-[0_-4px_6px_-1px_rgba(0,0,0,0.05)] md:tw-shadow-none">
               <div class="tw-flex tw-flex-row md:tw-flex-row tw-justify-between tw-items-center tw-gap-4 md:tw-gap-6">
                 <div class="tw-text-sm tw-flex tw-flex-col md:tw-flex-row md:tw-items-center tw-gap-1 md:tw-gap-3">
                   <div class="tw-flex tw-items-center tw-gap-2">
