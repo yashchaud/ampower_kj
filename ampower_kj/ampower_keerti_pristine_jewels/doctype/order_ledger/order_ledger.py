@@ -1,4 +1,4 @@
-# Copyright (c) 2025, Ambibuzz Technologies LLP and Contributors
+# Copyright (c) 2026, Ambibuzz Technologies LLP and Contributors
 # See license.txt
 
 
@@ -195,7 +195,7 @@ def apply_status_transition_effects(
 		if kwargs.get("karigar_received_weight") and not kwargs.get("weight_per_unit"):
 			try:
 				order.karigar_received_weight = float(kwargs["karigar_received_weight"])
-			except (ValueError, TypeError) as e:
+			except (ValueError, TypeError):
 				logger.warning(f"Invalid karigar_received_weight value: {kwargs['karigar_received_weight']}")
 				frappe.throw("Invalid received weight value. Please enter a valid number.")
 
@@ -220,7 +220,7 @@ def apply_status_transition_effects(
 		if kwargs.get("dispatch_weight") and not kwargs.get("weight_per_unit"):
 			try:
 				order.dispatch_weight = float(kwargs["dispatch_weight"])
-			except (ValueError, TypeError) as e:
+			except (ValueError, TypeError):
 				logger.warning(f"Invalid dispatch_weight value: {kwargs['dispatch_weight']}")
 				frappe.throw("Invalid dispatch weight value. Please enter a valid number.")
 
@@ -273,7 +273,7 @@ def get_all_order_items(
 	search=None,
 	customer=None,
 	karigar=None,
-	item_group=None,
+	item_name=None,
 	return_counts_only=False,
 ) -> dict:
 	"""Fetches Order Ledger entries with server-side pagination and filtering.
@@ -285,7 +285,7 @@ def get_all_order_items(
 		search: Search term for order name, sales order, or item
 		customer: Filter by customer
 		karigar: Filter by karigar
-		item_group: Filter by item group/die
+		item_name: Filter by item name/die (maps to soi_die field)
 		return_counts_only: If True, returns count grouped by status instead of paginated data
 
 	Returns:
@@ -294,7 +294,9 @@ def get_all_order_items(
 	"""
 	try:
 		logger.debug(
-			f"get_all_order_items called: page={page}, page_size={page_size}, return_counts_only={return_counts_only}"
+			f"get_all_order_items called: page={page}, page_size={page_size}, order_status={order_status}, "
+			f"search={search}, customer={customer}, karigar={karigar}, item_name={item_name}, "
+			f"return_counts_only={return_counts_only}"
 		)
 
 		# Sanitize search input
@@ -307,6 +309,24 @@ def get_all_order_items(
 		OrderLedger = DocType("Order Ledger")
 		SalesOrder = DocType("Sales Order")
 		Item = DocType("Item")
+
+		# Debug: Check total entries in database (regardless of filters)
+		total_entries_query = frappe.qb.from_(OrderLedger).select(Count("*").as_("total")).where(OrderLedger.disabled != 1)
+		total_entries_result = total_entries_query.run(as_dict=True)
+		total_entries = total_entries_result[0].total if total_entries_result else 0
+		logger.debug(f"Total Order Ledger entries (disabled != 1): {total_entries}")
+
+		# Debug: Check distinct order statuses in database
+		if order_status:
+			status_check_query = (
+				frappe.qb.from_(OrderLedger)
+				.select(OrderLedger.order_status, Count("*").as_("count"))
+				.where(OrderLedger.disabled != 1)
+				.groupby(OrderLedger.order_status)
+			)
+			status_distribution = status_check_query.run(as_dict=True)
+			logger.debug(f"Order status distribution: {status_distribution}")
+			logger.debug(f"Filtering by order_status: '{order_status}'")
 
 		# Handle return_counts_only mode - optimized single query with GROUP BY
 		if return_counts_only:
@@ -327,8 +347,8 @@ def get_all_order_items(
 				count_query = count_query.where(SalesOrder.customer == customer)
 			if karigar:
 				count_query = count_query.where(OrderLedger.soi_karigar == karigar)
-			if item_group:
-				count_query = count_query.where(OrderLedger.soi_die == item_group)
+			if item_name:
+				count_query = count_query.where(OrderLedger.soi_die == item_name)
 			if search:
 				search_condition = (
 					(OrderLedger.name.like(f"%{search}%"))
@@ -355,7 +375,7 @@ def get_all_order_items(
 		# Convert parameters
 		page = int(page) if page else 1
 		page_size = int(page_size) if page_size else 10
-	
+
 		# Validate page_size to prevent OOM
 		MAX_PAGE_SIZE = 1000
 		if page_size > MAX_PAGE_SIZE:
@@ -380,14 +400,13 @@ def get_all_order_items(
 				OrderLedger.dispatch_weight,
 				OrderLedger.qa_notes,
 				OrderLedger.order_date,
+				SalesOrder.po_no,
 				OrderLedger.qty,
 				SalesOrder.customer,
-				SalesOrder.po_no.as_("po_no"),
 				Item.image,
 				Item.item_name.as_("item_name"),
-				SalesOrderItem.sales_order_image,
 				SalesOrderItem.description,
-				SalesOrderItem.texture,
+				# SalesOrderItem.texture,  # Field doesn't exist in Sales Order Item table
 				OrderLedger.soi_order_weight,
 				OrderLedger.soi_die,
 				OrderLedger.soi_karigar,
@@ -422,9 +441,9 @@ def get_all_order_items(
 			query = query.where(SalesOrder.customer == customer)
 			count_query = count_query.where(SalesOrder.customer == customer)
 
-		if item_group:
-			query = query.where(OrderLedger.soi_die == item_group)
-			count_query = count_query.where(OrderLedger.soi_die == item_group)
+		if item_name:
+			query = query.where(OrderLedger.soi_die == item_name)
+			count_query = count_query.where(OrderLedger.soi_die == item_name)
 
 		# Apply search filter
 		if search:
@@ -438,6 +457,7 @@ def get_all_order_items(
 
 		# Get total count
 		total_count = count_query.run(as_dict=True)[0].total
+		logger.debug(f"Total count from query: {total_count}")
 
 		# Add ordering and pagination
 		start = (page - 1) * page_size
@@ -445,6 +465,7 @@ def get_all_order_items(
 
 		# Execute query
 		orders = query.run(as_dict=True)
+		logger.debug(f"Query returned {len(orders)} orders")
 
 		# Enrich data with additional fields for frontend compatibility
 		for order in orders:
@@ -464,13 +485,12 @@ def get_all_order_items(
 			order["parent"] = order.get("sales_order")
 			order["doctype"] = "Order Ledger"
 
-			# Build images array (Sales Order Item image + Item master image + Item attachments)
+			# Build images array (Sales Order Item image + Item master image)
 			images = []
-			if order.get("sales_order_image"):
-				images.append(order["sales_order_image"])
+			if order.get("sales_order_images"):
+				images.append(order["sales_order_images"])
 			if order.get("image"):
 				images.append(order["image"])
-
 			# Fetch attachments from Item master
 			item_code = order.get("item")
 			if item_code:
@@ -487,7 +507,6 @@ def get_all_order_items(
 				for attachment in attachments:
 					if attachment.file_url and attachment.file_url not in images:
 						images.append(attachment.file_url)
-
 			order["images"] = images
 			order["item_image"] = images[0] if images else None
 
@@ -498,8 +517,7 @@ def get_all_order_items(
 			order["karigar_notes"] = order.get("soi_karigar_notes")
 			order["customer_notes"] = order.get("soi_customer_notes")
 			order["planned_dispatch_date"] = order.get("soi_planned_dispatch_date")
-			# Ensure po_no is always present, even if NULL/empty
-			order["po_no"] = order.get("po_no") or ""
+			order["po_no"] = order.get("po_no")
 
 		return {
 			"data": orders,
@@ -600,7 +618,7 @@ def get_filter_options() -> dict[str, list[str]]:
 		logger.debug(
 			f"Filter options: {len(customers)} customers, {len(karigars)} karigars, {len(item_groups)} item_groups"
 		)
-		return {"customers": customers, "karigars": karigars, "item_groups": item_groups}
+		return {"customers": customers, "karigars": karigars, "item_names": item_groups}
 
 	except frappe.PermissionError:
 		# Permission errors - let them through to user
@@ -691,7 +709,7 @@ def update_item_status(
 						entry_qty = float(order.qty) if order.qty else 1
 						entry_weight = entry_qty * weight_per_unit
 						setattr(order, weight_field, entry_weight)
-					except (ValueError, TypeError) as e:
+					except (ValueError, TypeError):
 						logger.warning(f"Invalid qty for weight calculation in {item_name}: {order.qty}")
 						# Skip weight update for this entry but continue processing
 
@@ -765,7 +783,11 @@ def update_item_status(
 def split_order_item(item_name: str, split_qty) -> dict:
 	"""
 	Splits an Order Ledger entry by updating the original and creating a new entry for the remainder.
-	Example: Entry with 100 qty, user enters 60 → original becomes 60 qty, new entry created with 40 qty.
+	Weight fields are preserved as-is and NOT divided proportionally.
+
+	Example: Entry with 100 qty and 500g weight, user enters 60:
+		- Original becomes: 60 qty, 500g weight (weight unchanged)
+		- New entry created: 40 qty, 500g weight (weight unchanged)
 
 	Args:
 		item_name: Name of the Order Ledger entry to split
@@ -806,19 +828,26 @@ def split_order_item(item_name: str, split_qty) -> dict:
 		# Calculate remaining quantity
 		remaining_qty = total_qty - split_qty
 
-		# Update original order with split quantity
+		# Keep original weights - do NOT divide them proportionally
+		# Weight fields remain the same for both split entries
+
+		# Update original order with split quantity (weights stay the same)
 		original_order.qty = split_qty
 		split_note = f"\nSplit on {frappe.utils.now_datetime()} - kept {split_qty} qty, created new entry with {remaining_qty} qty"
-		original_order.soi_customer_notes = (original_order.soi_customer_notes or "") +";" + split_note
+		original_order.soi_customer_notes = (original_order.soi_customer_notes or "") + ";" + split_note
 		original_order.save()
 
 		# Create new entry with remaining quantity
+		# frappe.copy_doc() will copy all fields including weights as-is
 		remaining_entry = frappe.copy_doc(original_order)
 		remaining_entry.name = None
 		remaining_entry.qty = remaining_qty
+
+		# Weights are already copied from original_order via frappe.copy_doc()
+		# No need to modify them - they stay the same as the original
 		split_note_2 = f"\nSplit from {item_name} ({total_qty} qty) on {frappe.utils.now_datetime()} - remainder ({remaining_qty} qty)"
 		# Preserve original notes and append split information
-		remaining_entry.soi_customer_notes = (original_order.soi_customer_notes or "") +";" + split_note_2
+		remaining_entry.soi_customer_notes = (original_order.soi_customer_notes or "") + ";" + split_note_2
 		remaining_entry.insert()
 		logger.info(
 			f"Split successful: {item_name} -> {original_order.name} ({split_qty}) + {remaining_entry.name} ({remaining_qty})"

@@ -5,22 +5,24 @@ Production-grade test suite with proper isolation, comprehensive coverage,
 and reliable test data setup. Follows Frappe testing best practices.
 """
 
-import frappe
 import unittest
-from frappe.utils import today, add_days, now_datetime, getdate
+
+import frappe
+from frappe.utils import add_days, getdate, now_datetime, today
+
 from ampower_kj.ampower_keerti_pristine_jewels.doctype.order_ledger.order_ledger import (
-	get_workflow_stages,
-	status_to_key,
-	key_to_status,
-	get_status_index,
-	get_stage_filters,
-	apply_status_transition_effects,
 	_get_workflow_statuses,
-	get_workflow_status,
+	apply_status_transition_effects,
 	get_all_order_items,
 	get_filter_options,
-	update_item_status,
+	get_stage_filters,
+	get_status_index,
+	get_workflow_stages,
+	get_workflow_status,
+	key_to_status,
 	split_order_item,
+	status_to_key,
+	update_item_status,
 )
 
 
@@ -59,12 +61,14 @@ class TestOrderLedger(unittest.TestCase):
 			# Ensure at least one customer exists
 			cls.test_customer = frappe.db.get_value("Customer", {}, "name")
 			if not cls.test_customer:
-				customer_doc = frappe.get_doc({
-					"doctype": "Customer",
-					"customer_name": "Test Customer for Order Ledger",
-					"customer_type": "Individual",
-					"customer_group": "Individual"
-				})
+				customer_doc = frappe.get_doc(
+					{
+						"doctype": "Customer",
+						"customer_name": "Test Customer for Order Ledger",
+						"customer_type": "Individual",
+						"customer_group": "Individual",
+					}
+				)
 				customer_doc.insert(ignore_permissions=True)
 				cls.test_customer = customer_doc.name
 				frappe.db.commit()
@@ -72,24 +76,26 @@ class TestOrderLedger(unittest.TestCase):
 			# Ensure at least two suppliers exist for filter tests
 			cls.test_supplier = frappe.db.get_value("Supplier", {}, "name")
 			if not cls.test_supplier:
-				supplier_doc = frappe.get_doc({
-					"doctype": "Supplier",
-					"supplier_name": "Test Supplier 1 for Order Ledger",
-					"supplier_group": "All Supplier Groups"
-				})
+				supplier_doc = frappe.get_doc(
+					{
+						"doctype": "Supplier",
+						"supplier_name": "Test Supplier 1 for Order Ledger",
+						"supplier_group": "All Supplier Groups",
+					}
+				)
 				supplier_doc.insert(ignore_permissions=True)
 				cls.test_supplier = supplier_doc.name
 				frappe.db.commit()
 
-			cls.test_supplier_2 = frappe.db.get_value(
-				"Supplier", {"name": ["!=", cls.test_supplier]}, "name"
-			)
+			cls.test_supplier_2 = frappe.db.get_value("Supplier", {"name": ["!=", cls.test_supplier]}, "name")
 			if not cls.test_supplier_2:
-				supplier_doc = frappe.get_doc({
-					"doctype": "Supplier",
-					"supplier_name": "Test Supplier 2 for Order Ledger",
-					"supplier_group": "All Supplier Groups"
-				})
+				supplier_doc = frappe.get_doc(
+					{
+						"doctype": "Supplier",
+						"supplier_name": "Test Supplier 2 for Order Ledger",
+						"supplier_group": "All Supplier Groups",
+					}
+				)
 				supplier_doc.insert(ignore_permissions=True)
 				cls.test_supplier_2 = supplier_doc.name
 				frappe.db.commit()
@@ -97,43 +103,39 @@ class TestOrderLedger(unittest.TestCase):
 			# Ensure at least one non-template item exists
 			# Exclude template items (has_variants=1) to avoid validation errors in Sales Order
 			cls.test_item = frappe.db.get_value(
-				"Item",
-				{"has_variants": ["!=", 1], "is_stock_item": 1},
-				"name"
+				"Item", {"has_variants": ["!=", 1], "is_stock_item": 1}, "name"
 			)
 			if not cls.test_item:
-				item_doc = frappe.get_doc({
-					"doctype": "Item",
-					"item_code": "TEST-ITEM-ORDER-LEDGER",
-					"item_name": "Test Item for Order Ledger",
-					"item_group": "All Item Groups",
-					"stock_uom": "Nos",
-					"is_stock_item": 1,
-					"has_variants": 0
-				})
+				item_doc = frappe.get_doc(
+					{
+						"doctype": "Item",
+						"item_code": "TEST-ITEM-ORDER-LEDGER",
+						"item_name": "Test Item for Order Ledger",
+						"item_group": "All Item Groups",
+						"stock_uom": "Nos",
+						"is_stock_item": 1,
+						"has_variants": 0,
+					}
+				)
 				item_doc.insert(ignore_permissions=True)
 				cls.test_item = item_doc.name
 				frappe.db.commit()
 
 			# Create a test Sales Order (reused across tests)
 			cls.test_sales_order = frappe.db.get_value(
-				"Sales Order",
-				{"customer": cls.test_customer, "docstatus": ["<", 2]},
-				"name"
+				"Sales Order", {"customer": cls.test_customer, "docstatus": ["<", 2]}, "name"
 			)
 			if not cls.test_sales_order:
-				so_doc = frappe.get_doc({
-					"doctype": "Sales Order",
-					"customer": cls.test_customer,
-					"order_type": "Sales",
-					"transaction_date": today(),
-					"delivery_date": add_days(today(), 7),
-					"items": [{
-						"item_code": cls.test_item,
-						"qty": 10,
-						"rate": 100
-					}]
-				})
+				so_doc = frappe.get_doc(
+					{
+						"doctype": "Sales Order",
+						"customer": cls.test_customer,
+						"order_type": "Sales",
+						"transaction_date": today(),
+						"delivery_date": add_days(today(), 7),
+						"items": [{"item_code": cls.test_item, "qty": 10, "rate": 100}],
+					}
+				)
 				so_doc.insert(ignore_permissions=True)
 				cls.test_sales_order = so_doc.name
 				cls.test_sales_order_item = so_doc.items[0].name
@@ -158,12 +160,7 @@ class TestOrderLedger(unittest.TestCase):
 		for doc in self._test_docs:
 			try:
 				if frappe.db.exists(doc["doctype"], doc["name"]):
-					frappe.delete_doc(
-						doc["doctype"],
-						doc["name"],
-						force=True,
-						ignore_permissions=True
-					)
+					frappe.delete_doc(doc["doctype"], doc["name"], force=True, ignore_permissions=True)
 			except Exception:
 				pass  # Best effort cleanup
 
@@ -185,7 +182,7 @@ class TestOrderLedger(unittest.TestCase):
 			"item": self.test_item,
 			"order_date": today(),
 			"qty": 1,
-			"order_status": "Unassigned"
+			"order_status": "Unassigned",
 		}
 		defaults.update(kwargs)
 
@@ -204,9 +201,7 @@ class TestOrderLedger(unittest.TestCase):
 	def test_before_save_auto_fill_qty_from_sales_order_item(self):
 		"""Test qty auto-fill from Sales Order Item when qty is not set."""
 		# Get the actual qty from the Sales Order Item
-		expected_qty = frappe.db.get_value(
-			"Sales Order Item", self.test_sales_order_item, "qty"
-		)
+		expected_qty = frappe.db.get_value("Sales Order Item", self.test_sales_order_item, "qty")
 		self.assertIsNotNone(expected_qty, "Sales Order Item should have qty")
 
 		# Create order with qty=0 to trigger auto-fill
@@ -214,17 +209,12 @@ class TestOrderLedger(unittest.TestCase):
 
 		# Should auto-fill qty from Sales Order Item
 		self.assertEqual(
-			order.qty,
-			expected_qty,
-			f"Qty should be auto-filled from Sales Order Item ({expected_qty})"
+			order.qty, expected_qty, f"Qty should be auto-filled from Sales Order Item ({expected_qty})"
 		)
 
 	def test_before_save_default_qty_to_one(self):
 		"""Test qty defaults to 1 when not set and no Sales Order Item."""
-		order = self.create_test_order_ledger(
-			sales_order_item=None,
-			qty=0
-		)
+		order = self.create_test_order_ledger(sales_order_item=None, qty=0)
 
 		# Should default to 1
 		self.assertEqual(order.qty, 1, "Qty should default to 1 when not set")
@@ -248,8 +238,12 @@ class TestOrderLedger(unittest.TestCase):
 
 		# Verify expected statuses exist
 		expected_statuses = [
-			"Unassigned", "Assigned", "Incoming",
-			"Internal QA", "Pending Delivery", "Delivered"
+			"Unassigned",
+			"Assigned",
+			"Incoming",
+			"Internal QA",
+			"Pending Delivery",
+			"Delivered",
 		]
 		for status in expected_statuses:
 			self.assertIn(status, statuses, f"{status} should be in workflow statuses")
@@ -274,9 +268,7 @@ class TestOrderLedger(unittest.TestCase):
 		for status, expected_key in test_cases:
 			result = status_to_key(status)
 			self.assertEqual(
-				result,
-				expected_key,
-				f"status_to_key('{status}') should return '{expected_key}'"
+				result, expected_key, f"status_to_key('{status}') should return '{expected_key}'"
 			)
 
 	def test_key_to_status_conversion(self):
@@ -291,9 +283,7 @@ class TestOrderLedger(unittest.TestCase):
 		for key, expected_status in test_cases:
 			result = key_to_status(key, statuses)
 			self.assertEqual(
-				result,
-				expected_status,
-				f"key_to_status('{key}') should return '{expected_status}'"
+				result, expected_status, f"key_to_status('{key}') should return '{expected_status}'"
 			)
 
 	def test_key_to_status_invalid_key(self):
@@ -307,20 +297,12 @@ class TestOrderLedger(unittest.TestCase):
 		statuses = _get_workflow_statuses()
 
 		self.assertEqual(
-			get_status_index("Unassigned", statuses),
-			0,
-			"Unassigned should be first status (index 0)"
+			get_status_index("Unassigned", statuses), 0, "Unassigned should be first status (index 0)"
 		)
 		self.assertEqual(
-			get_status_index("Assigned", statuses),
-			1,
-			"Assigned should be second status (index 1)"
+			get_status_index("Assigned", statuses), 1, "Assigned should be second status (index 1)"
 		)
-		self.assertEqual(
-			get_status_index("Invalid Status", statuses),
-			-1,
-			"Invalid status should return -1"
-		)
+		self.assertEqual(get_status_index("Invalid Status", statuses), -1, "Invalid status should return -1")
 
 	def test_get_workflow_stages(self):
 		"""Test workflow stages generation."""
@@ -343,27 +325,15 @@ class TestOrderLedger(unittest.TestCase):
 		filters = get_stage_filters("internal_qa")
 
 		self.assertIsInstance(filters, dict, "Should return dict of filters")
-		self.assertEqual(
-			filters.get("order_status"),
-			"Internal QA",
-			"Should include order_status filter"
-		)
-		self.assertEqual(
-			filters.get("disabled"),
-			["!=", 1],
-			"Should exclude disabled orders"
-		)
+		self.assertEqual(filters.get("order_status"), "Internal QA", "Should include order_status filter")
+		self.assertEqual(filters.get("disabled"), ["!=", 1], "Should exclude disabled orders")
 
 	def test_get_stage_filters_invalid_key(self):
 		"""Test get_stage_filters with invalid key."""
 		filters = get_stage_filters("invalid_key_xyz")
 
 		self.assertNotIn("order_status", filters, "Invalid key should not set order_status")
-		self.assertEqual(
-			filters.get("disabled"),
-			["!=", 1],
-			"Should still exclude disabled orders"
-		)
+		self.assertEqual(filters.get("disabled"), ["!=", 1], "Should still exclude disabled orders")
 
 	# ========== STATUS TRANSITION TESTS ==========
 	# These tests verify status transitions work correctly.
@@ -376,19 +346,14 @@ class TestOrderLedger(unittest.TestCase):
 		order = self.create_test_order_ledger(order_status="Unassigned")
 
 		# Use the actual API to update status
-		results = update_item_status(
-			item_names=[order.name],
-			new_status="Assigned"
-		)
+		results = update_item_status(item_names=[order.name], new_status="Assigned")
 
 		self.assertTrue(results[0]["success"], "API should succeed")
 
 		# Verify the transition effect was applied
 		order.reload()
 		self.assertEqual(
-			order.karigar_assignment_date,
-			getdate(today()),
-			"Should set karigar_assignment_date to today"
+			order.karigar_assignment_date, getdate(today()), "Should set karigar_assignment_date to today"
 		)
 		self.assertEqual(order.order_status, "Assigned", "Status should be updated")
 
@@ -396,24 +361,18 @@ class TestOrderLedger(unittest.TestCase):
 		"""Test that existing karigar_assignment_date is NOT overridden via API."""
 		original_date = getdate(add_days(today(), -10))
 		order = self.create_test_order_ledger(
-			order_status="Unassigned",
-			karigar_assignment_date=original_date
+			order_status="Unassigned", karigar_assignment_date=original_date
 		)
 
 		# Use the actual API to update status
-		results = update_item_status(
-			item_names=[order.name],
-			new_status="Assigned"
-		)
+		results = update_item_status(item_names=[order.name], new_status="Assigned")
 
 		self.assertTrue(results[0]["success"], "API should succeed")
 
 		# Verify existing date is preserved
 		order.reload()
 		self.assertEqual(
-			order.karigar_assignment_date,
-			original_date,
-			"Should preserve existing assignment date"
+			order.karigar_assignment_date, original_date, "Should preserve existing assignment date"
 		)
 
 	def test_transition_to_incoming(self):
@@ -421,42 +380,27 @@ class TestOrderLedger(unittest.TestCase):
 		order = self.create_test_order_ledger(order_status="Assigned")
 
 		# Use the actual API
-		results = update_item_status(
-			item_names=[order.name],
-			new_status="Incoming"
-		)
+		results = update_item_status(item_names=[order.name], new_status="Incoming")
 
 		self.assertTrue(results[0]["success"], "API should succeed")
 
 		order.reload()
 		self.assertEqual(
-			order.karigar_incoming_date,
-			getdate(today()),
-			"Should set karigar_incoming_date to today"
+			order.karigar_incoming_date, getdate(today()), "Should set karigar_incoming_date to today"
 		)
 
 	def test_transition_to_incoming_preserves_existing_date(self):
 		"""Test that existing karigar_incoming_date is NOT overridden via API."""
 		original_date = getdate(add_days(today(), -5))
-		order = self.create_test_order_ledger(
-			order_status="Assigned",
-			karigar_incoming_date=original_date
-		)
+		order = self.create_test_order_ledger(order_status="Assigned", karigar_incoming_date=original_date)
 
 		# Use the actual API
-		results = update_item_status(
-			item_names=[order.name],
-			new_status="Incoming"
-		)
+		results = update_item_status(item_names=[order.name], new_status="Incoming")
 
 		self.assertTrue(results[0]["success"], "API should succeed")
 
 		order.reload()
-		self.assertEqual(
-			order.karigar_incoming_date,
-			original_date,
-			"Should preserve existing incoming date"
-		)
+		self.assertEqual(order.karigar_incoming_date, original_date, "Should preserve existing incoming date")
 
 	def test_transition_incoming_to_internal_qa(self):
 		"""Test Incoming → Internal QA transition with weight and notes via API."""
@@ -467,27 +411,17 @@ class TestOrderLedger(unittest.TestCase):
 			item_names=[order.name],
 			new_status="Internal QA",
 			karigar_received_weight="25.5",
-			receive_notes="Received in good condition"
+			receive_notes="Received in good condition",
 		)
 
 		self.assertTrue(results[0]["success"], "API should succeed")
 
 		order.reload()
 		self.assertEqual(
-			order.karigar_actual_receive_date,
-			getdate(today()),
-			"Should set receive date to today"
+			order.karigar_actual_receive_date, getdate(today()), "Should set receive date to today"
 		)
-		self.assertEqual(
-			order.karigar_received_weight,
-			25.5,
-			"Should set received weight"
-		)
-		self.assertEqual(
-			order.soi_karigar_notes,
-			"Received in good condition",
-			"Should set karigar notes"
-		)
+		self.assertEqual(order.karigar_received_weight, 25.5, "Should set received weight")
+		self.assertEqual(order.soi_karigar_notes, "Received in good condition", "Should set karigar notes")
 
 	def test_transition_incoming_to_internal_qa_with_custom_date(self):
 		"""Test Incoming → Internal QA with custom receive date via API."""
@@ -497,41 +431,29 @@ class TestOrderLedger(unittest.TestCase):
 
 		# Use the actual API with custom date
 		results = update_item_status(
-			item_names=[order.name],
-			new_status="Internal QA",
-			incoming_to_received=custom_date
+			item_names=[order.name], new_status="Internal QA", incoming_to_received=custom_date
 		)
 
 		self.assertTrue(results[0]["success"], "API should succeed")
 
 		order.reload()
-		self.assertEqual(
-			order.karigar_actual_receive_date,
-			custom_date,
-			"Should use custom receive date"
-		)
+		self.assertEqual(order.karigar_actual_receive_date, custom_date, "Should use custom receive date")
 
 	def test_transition_incoming_to_internal_qa_preserves_existing_date(self):
 		"""Test that existing karigar_actual_receive_date is NOT overridden via API."""
 		original_date = getdate(add_days(today(), -3))
 		order = self.create_test_order_ledger(
-			order_status="Incoming",
-			karigar_actual_receive_date=original_date
+			order_status="Incoming", karigar_actual_receive_date=original_date
 		)
 
 		# Use the actual API without providing a date
-		results = update_item_status(
-			item_names=[order.name],
-			new_status="Internal QA"
-		)
+		results = update_item_status(item_names=[order.name], new_status="Internal QA")
 
 		self.assertTrue(results[0]["success"], "API should succeed")
 
 		order.reload()
 		self.assertEqual(
-			order.karigar_actual_receive_date,
-			original_date,
-			"Should preserve existing receive date"
+			order.karigar_actual_receive_date, original_date, "Should preserve existing receive date"
 		)
 
 	# ========== UNIT TESTS OF TRANSITION HELPER FUNCTION ==========
@@ -544,17 +466,13 @@ class TestOrderLedger(unittest.TestCase):
 		order = self.create_test_order_ledger(order_status="Incoming")
 
 		# When weight_per_unit is provided, individual weight should not be set
-		kwargs = {
-			"karigar_received_weight": "25.5",
-			"weight_per_unit": "5.0"
-		}
+		kwargs = {"karigar_received_weight": "25.5", "weight_per_unit": "5.0"}
 
 		apply_status_transition_effects(order, "Incoming", "Internal QA", kwargs)
 
 		# Weight should not be set because weight_per_unit is present
 		self.assertIsNone(
-			order.karigar_received_weight,
-			"Weight should not be set when weight_per_unit is provided"
+			order.karigar_received_weight, "Weight should not be set when weight_per_unit is provided"
 		)
 
 	def test_transition_internal_qa_to_pending_delivery(self):
@@ -569,18 +487,11 @@ class TestOrderLedger(unittest.TestCase):
 		"""UNIT TEST: Pending Delivery → Delivered with dispatch details."""
 		order = self.create_test_order_ledger(order_status="Pending Delivery")
 
-		kwargs = {
-			"dispatch_weight": "24.8",
-			"dispatch_notes": "QA passed, dispatched"
-		}
+		kwargs = {"dispatch_weight": "24.8", "dispatch_notes": "QA passed, dispatched"}
 
 		apply_status_transition_effects(order, "Pending Delivery", "Delivered", kwargs)
 
-		self.assertEqual(
-			order.actual_dispatch_date,
-			today(),
-			"Should set dispatch date to today"
-		)
+		self.assertEqual(order.actual_dispatch_date, today(), "Should set dispatch date to today")
 		self.assertEqual(order.dispatch_weight, 24.8, "Should set dispatch weight")
 		self.assertEqual(order.qa_notes, "QA passed, dispatched", "Should set QA notes")
 
@@ -588,74 +499,46 @@ class TestOrderLedger(unittest.TestCase):
 		"""UNIT TEST: Existing actual_dispatch_date is NOT overridden."""
 		original_date = add_days(today(), -2)
 		order = self.create_test_order_ledger(
-			order_status="Pending Delivery",
-			actual_dispatch_date=original_date
+			order_status="Pending Delivery", actual_dispatch_date=original_date
 		)
 
 		apply_status_transition_effects(order, "Pending Delivery", "Delivered")
 
-		self.assertEqual(
-			order.actual_dispatch_date,
-			original_date,
-			"Should preserve existing dispatch date"
-		)
+		self.assertEqual(order.actual_dispatch_date, original_date, "Should preserve existing dispatch date")
 
 	# ========== REVERSE TRANSITION TESTS ==========
 	# These are unit tests of the revert/rollback logic in the helper function.
 
 	def test_transition_assigned_to_unassigned_revert(self):
 		"""UNIT TEST: Assigned → Unassigned revert clears assignment date."""
-		order = self.create_test_order_ledger(
-			order_status="Assigned",
-			karigar_assignment_date=today()
-		)
+		order = self.create_test_order_ledger(order_status="Assigned", karigar_assignment_date=today())
 
 		apply_status_transition_effects(order, "Assigned", "Unassigned")
 
-		self.assertIsNone(
-			order.karigar_assignment_date,
-			"Should clear karigar_assignment_date on revert"
-		)
+		self.assertIsNone(order.karigar_assignment_date, "Should clear karigar_assignment_date on revert")
 
 	def test_transition_incoming_to_assigned_revert(self):
 		"""Test Incoming → Assigned revert clears incoming date."""
-		order = self.create_test_order_ledger(
-			order_status="Incoming",
-			karigar_incoming_date=today()
-		)
+		order = self.create_test_order_ledger(order_status="Incoming", karigar_incoming_date=today())
 
 		apply_status_transition_effects(order, "Incoming", "Assigned")
 
-		self.assertIsNone(
-			order.karigar_incoming_date,
-			"Should clear karigar_incoming_date on revert"
-		)
+		self.assertIsNone(order.karigar_incoming_date, "Should clear karigar_incoming_date on revert")
 
 	def test_transition_internal_qa_to_incoming_revert(self):
 		"""Test Internal QA → Incoming revert clears receive data."""
 		order = self.create_test_order_ledger(
-			order_status="Internal QA",
-			karigar_received_weight=25.5,
-			karigar_actual_receive_date=today()
+			order_status="Internal QA", karigar_received_weight=25.5, karigar_actual_receive_date=today()
 		)
 
 		apply_status_transition_effects(order, "Internal QA", "Incoming", {})
 
-		self.assertIsNone(
-			order.karigar_received_weight,
-			"Should clear received weight on revert"
-		)
-		self.assertIsNone(
-			order.karigar_actual_receive_date,
-			"Should clear receive date on revert"
-		)
+		self.assertIsNone(order.karigar_received_weight, "Should clear received weight on revert")
+		self.assertIsNone(order.karigar_actual_receive_date, "Should clear receive date on revert")
 
 	def test_transition_pending_delivery_to_internal_qa_revert(self):
 		"""Test Pending Delivery → Internal QA revert clears QA clearance."""
-		order = self.create_test_order_ledger(
-			order_status="Pending Delivery",
-			is_qa_cleared=1
-		)
+		order = self.create_test_order_ledger(order_status="Pending Delivery", is_qa_cleared=1)
 
 		apply_status_transition_effects(order, "Pending Delivery", "Internal QA")
 
@@ -664,21 +547,13 @@ class TestOrderLedger(unittest.TestCase):
 	def test_transition_delivered_to_pending_delivery_revert(self):
 		"""Test Delivered → Pending Delivery revert clears dispatch data."""
 		order = self.create_test_order_ledger(
-			order_status="Delivered",
-			actual_dispatch_date=today(),
-			dispatch_weight=25.5
+			order_status="Delivered", actual_dispatch_date=today(), dispatch_weight=25.5
 		)
 
 		apply_status_transition_effects(order, "Delivered", "Pending Delivery")
 
-		self.assertIsNone(
-			order.actual_dispatch_date,
-			"Should clear dispatch date on revert"
-		)
-		self.assertIsNone(
-			order.dispatch_weight,
-			"Should clear dispatch weight on revert"
-		)
+		self.assertIsNone(order.actual_dispatch_date, "Should clear dispatch date on revert")
+		self.assertIsNone(order.dispatch_weight, "Should clear dispatch weight on revert")
 
 	def test_transition_with_invalid_status_indices(self):
 		"""Test transition with invalid statuses doesn't crash."""
@@ -730,29 +605,17 @@ class TestOrderLedger(unittest.TestCase):
 		self.create_test_order_ledger(order_status="Unassigned")
 		self.create_test_order_ledger(order_status="Assigned")
 
-		result = get_all_order_items(
-			page=1,
-			page_size=10,
-			order_status="Unassigned"
-		)
+		result = get_all_order_items(page=1, page_size=10, order_status="Unassigned")
 
 		# All returned orders should have Unassigned status
 		for order in result["data"]:
-			self.assertEqual(
-				order["order_status"],
-				"Unassigned",
-				"All orders should match the filter"
-			)
+			self.assertEqual(order["order_status"], "Unassigned", "All orders should match the filter")
 
 	def test_get_all_order_items_with_search(self):
 		"""Test get_all_order_items API with search filter."""
 		order = self.create_test_order_ledger()
 
-		result = get_all_order_items(
-			page=1,
-			page_size=10,
-			search=self.test_sales_order
-		)
+		result = get_all_order_items(page=1, page_size=10, search=self.test_sales_order)
 
 		# Verify response structure is valid
 		self.assertIn("data", result, "Should have data key")
@@ -762,20 +625,11 @@ class TestOrderLedger(unittest.TestCase):
 	def test_get_all_order_items_with_multiple_filters(self):
 		"""Test get_all_order_items with multiple filters combined."""
 		# Create orders with specific attributes
-		order1 = self.create_test_order_ledger(
-			order_status="Unassigned",
-			soi_karigar=self.test_supplier
-		)
+		order1 = self.create_test_order_ledger(order_status="Unassigned", soi_karigar=self.test_supplier)
 
-		order2 = self.create_test_order_ledger(
-			order_status="Assigned",
-			soi_karigar=self.test_supplier
-		)
+		order2 = self.create_test_order_ledger(order_status="Assigned", soi_karigar=self.test_supplier)
 
-		order3 = self.create_test_order_ledger(
-			order_status="Unassigned",
-			soi_karigar=self.test_supplier_2
-		)
+		order3 = self.create_test_order_ledger(order_status="Unassigned", soi_karigar=self.test_supplier_2)
 
 		# Apply all filters together
 		result = get_all_order_items(
@@ -847,20 +701,13 @@ class TestOrderLedger(unittest.TestCase):
 			# Verify enriched fields exist
 			required_fields = ["item_code", "parent", "doctype", "images"]
 			for field in required_fields:
-				self.assertIn(
-					field,
-					first_item,
-					f"Enriched data should include '{field}'"
-				)
+				self.assertIn(field, first_item, f"Enriched data should include '{field}'")
 			self.assertIsInstance(first_item["images"], list, "images should be a list")
 
 	def test_get_all_order_items_disabled_orders_excluded(self):
 		"""Test that disabled orders are excluded from queries."""
 		enabled_order = self.create_test_order_ledger(order_status="Unassigned")
-		disabled_order = self.create_test_order_ledger(
-			order_status="Unassigned",
-			disabled=1
-		)
+		disabled_order = self.create_test_order_ledger(order_status="Unassigned", disabled=1)
 
 		result = get_all_order_items(page=1, page_size=100)
 
@@ -890,24 +737,12 @@ class TestOrderLedger(unittest.TestCase):
 	def test_get_all_order_items_counts_with_filters(self):
 		"""Test get_all_order_items counts with filters applied."""
 		# Create orders with specific attributes
-		self.create_test_order_ledger(
-			order_status="Unassigned",
-			soi_karigar=self.test_supplier
-		)
-		self.create_test_order_ledger(
-			order_status="Assigned",
-			soi_karigar=self.test_supplier
-		)
-		self.create_test_order_ledger(
-			order_status="Unassigned",
-			soi_karigar=self.test_supplier_2
-		)
+		self.create_test_order_ledger(order_status="Unassigned", soi_karigar=self.test_supplier)
+		self.create_test_order_ledger(order_status="Assigned", soi_karigar=self.test_supplier)
+		self.create_test_order_ledger(order_status="Unassigned", soi_karigar=self.test_supplier_2)
 
 		# Get counts with filter
-		counts = get_all_order_items(
-			karigar=self.test_supplier,
-			return_counts_only=True
-		)
+		counts = get_all_order_items(karigar=self.test_supplier, return_counts_only=True)
 
 		# Should only count orders matching the filter
 		self.assertIsInstance(counts, dict, "Should return dict")
@@ -957,10 +792,7 @@ class TestOrderLedger(unittest.TestCase):
 		"""Test update_item_status API for single item."""
 		order = self.create_test_order_ledger(order_status="Unassigned")
 
-		results = update_item_status(
-			item_names=[order.name],
-			new_status="Assigned"
-		)
+		results = update_item_status(item_names=[order.name], new_status="Assigned")
 
 		self.assertEqual(len(results), 1, "Should return 1 result")
 		self.assertTrue(results[0]["success"], "Update should succeed")
@@ -975,15 +807,12 @@ class TestOrderLedger(unittest.TestCase):
 		orders = [
 			self.create_test_order_ledger(order_status="Unassigned"),
 			self.create_test_order_ledger(order_status="Unassigned"),
-			self.create_test_order_ledger(order_status="Unassigned")
+			self.create_test_order_ledger(order_status="Unassigned"),
 		]
 
 		item_names = [o.name for o in orders]
 
-		results = update_item_status(
-			item_names=item_names,
-			new_status="Assigned"
-		)
+		results = update_item_status(item_names=item_names, new_status="Assigned")
 
 		self.assertEqual(len(results), 3, "Should return 3 results")
 		for result in results:
@@ -997,18 +826,14 @@ class TestOrderLedger(unittest.TestCase):
 			item_names=[order.name],
 			new_status="Internal QA",
 			weight_per_unit="2.5",
-			weight_field="karigar_received_weight"
+			weight_field="karigar_received_weight",
 		)
 
 		self.assertTrue(results[0]["success"], "Update should succeed")
 
 		# Verify weight calculation: 5 qty × 2.5 weight_per_unit = 12.5
 		order.reload()
-		self.assertEqual(
-			order.karigar_received_weight,
-			12.5,
-			"Should calculate weight correctly"
-		)
+		self.assertEqual(order.karigar_received_weight, 12.5, "Should calculate weight correctly")
 
 	def test_update_item_status_qty_none_uses_default(self):
 		"""Test bulk weight calculation when order.qty is None (defaults to 1)."""
@@ -1018,7 +843,7 @@ class TestOrderLedger(unittest.TestCase):
 			item_names=[order.name],
 			new_status="Internal QA",
 			weight_per_unit="2.5",
-			weight_field="karigar_received_weight"
+			weight_field="karigar_received_weight",
 		)
 
 		self.assertTrue(results[0]["success"], "Update should succeed")
@@ -1032,21 +857,14 @@ class TestOrderLedger(unittest.TestCase):
 		order = self.create_test_order_ledger()
 
 		with self.assertRaises(frappe.ValidationError):
-			update_item_status(
-				item_names=[order.name],
-				new_status="Invalid Status XYZ"
-			)
+			update_item_status(item_names=[order.name], new_status="Invalid Status XYZ")
 
 	def test_update_item_status_invalid_weight_negative(self):
 		"""Test update_item_status with negative weight_per_unit."""
 		order = self.create_test_order_ledger(order_status="Incoming")
 
 		with self.assertRaises(frappe.ValidationError):
-			update_item_status(
-				item_names=[order.name],
-				new_status="Internal QA",
-				weight_per_unit="-5"
-			)
+			update_item_status(item_names=[order.name], new_status="Internal QA", weight_per_unit="-5")
 
 	def test_update_item_status_invalid_weight_non_numeric(self):
 		"""Test update_item_status with non-numeric weight_per_unit."""
@@ -1057,7 +875,7 @@ class TestOrderLedger(unittest.TestCase):
 				item_names=[order.name],
 				new_status="Internal QA",
 				weight_per_unit="not-a-number",
-				weight_field="karigar_received_weight"
+				weight_field="karigar_received_weight",
 			)
 
 	def test_update_item_status_partial_failures(self):
@@ -1073,10 +891,7 @@ class TestOrderLedger(unittest.TestCase):
 			order2.name,
 		]
 
-		results = update_item_status(
-			item_names=item_names,
-			new_status="Assigned"
-		)
+		results = update_item_status(item_names=item_names, new_status="Assigned")
 
 		# Should have 3 results
 		self.assertEqual(len(results), 3, "Should return 3 results")
@@ -1097,17 +912,11 @@ class TestOrderLedger(unittest.TestCase):
 		"""Test JSON string parsing for item_names parameter."""
 		import json
 
-		orders = [
-			self.create_test_order_ledger(),
-			self.create_test_order_ledger()
-		]
+		orders = [self.create_test_order_ledger(), self.create_test_order_ledger()]
 
 		item_names_json = json.dumps([o.name for o in orders])
 
-		results = update_item_status(
-			item_names=item_names_json,
-			new_status="Assigned"
-		)
+		results = update_item_status(item_names=item_names_json, new_status="Assigned")
 
 		self.assertEqual(len(results), 2, "Should parse JSON string")
 		for result in results:
@@ -1118,10 +927,7 @@ class TestOrderLedger(unittest.TestCase):
 		order = self.create_test_order_ledger(qty=100)
 		original_name = order.name
 
-		result = split_order_item(
-			item_name=order.name,
-			split_qty=60
-		)
+		result = split_order_item(item_name=order.name, split_qty=60)
 
 		self.assertTrue(result["success"], "Split should succeed")
 		self.assertEqual(result["original_entry"], original_name)
@@ -1143,10 +949,7 @@ class TestOrderLedger(unittest.TestCase):
 		"""Test split when original_order.qty is None (defaults to 1)."""
 		order = self.create_test_order_ledger(qty=None)
 
-		result = split_order_item(
-			item_name=order.name,
-			split_qty=0.6
-		)
+		result = split_order_item(item_name=order.name, split_qty=0.6)
 
 		# With default total_qty=1, split 0.6 → original=0.6, new=0.4
 		self.assertTrue(result["success"], "Split should succeed")
@@ -1224,107 +1027,4 @@ class TestOrderLedger(unittest.TestCase):
 	def test_split_order_item_nonexistent_order(self):
 		"""Test split_order_item with nonexistent order."""
 		with self.assertRaises(frappe.ValidationError):
-			split_order_item(
-				item_name="NONEXISTENT-ORDER-XYZ",
-				split_qty=50
-			)
-
-	# ========== PO NUMBER FIELD TESTS ==========
-
-	def test_get_all_order_items_includes_po_no_field(self):
-		"""Test that po_no field is always included in API response."""
-		# Create test order
-		order = self.create_test_order_ledger()
-
-		result = get_all_order_items(page=1, page_size=10)
-
-		# Verify response structure
-		self.assertIn("data", result, "Should have data key")
-		self.assertIsInstance(result["data"], list, "data should be a list")
-
-		# If data is returned, verify po_no field exists
-		if len(result["data"]) > 0:
-			first_item = result["data"][0]
-			self.assertIn(
-				"po_no",
-				first_item,
-				"Response should always include po_no field"
-			)
-
-	def test_get_all_order_items_po_no_null_handling(self):
-		"""Test that NULL/empty po_no values are handled correctly."""
-		# Create order with a sales order that has no po_no
-		order = self.create_test_order_ledger()
-
-		result = get_all_order_items(page=1, page_size=10)
-
-		# Verify response structure
-		self.assertIn("data", result, "Should have data key")
-
-		# If data is returned, verify po_no field handling
-		if len(result["data"]) > 0:
-			first_item = result["data"][0]
-			# po_no should be present (not missing from dict)
-			self.assertIn("po_no", first_item, "po_no field should be present")
-			# po_no can be None or empty string for NULL values
-			self.assertIn(
-				first_item.get("po_no"),
-				[None, "", "N/A"],
-				"NULL po_no should be None or empty string"
-			)
-
-	def test_get_all_order_items_po_no_with_value(self):
-		"""Test that po_no field with actual value is returned correctly."""
-		# Update the test sales order to have a po_no value
-		test_po_no = "PO-TEST-2026-001"
-		frappe.db.set_value("Sales Order", self.test_sales_order, "po_no", test_po_no)
-		frappe.db.commit()
-
-		# Create order
-		order = self.create_test_order_ledger()
-
-		result = get_all_order_items(page=1, page_size=10)
-
-		# Verify response
-		self.assertIn("data", result, "Should have data key")
-
-		# Find our test order in the results
-		test_order_data = None
-		for item in result["data"]:
-			if item["name"] == order.name:
-				test_order_data = item
-				break
-
-		# If found, verify po_no value
-		if test_order_data:
-			self.assertEqual(
-				test_order_data.get("po_no"),
-				test_po_no,
-				"po_no should match the Sales Order po_no"
-			)
-
-		# Clean up: reset po_no to None
-		frappe.db.set_value("Sales Order", self.test_sales_order, "po_no", None)
-		frappe.db.commit()
-
-	def test_get_all_order_items_data_enrichment_includes_po_no(self):
-		"""Test data enrichment includes po_no in required fields."""
-		order = self.create_test_order_ledger()
-
-		result = get_all_order_items(page=1, page_size=10)
-
-		# Verify response structure
-		self.assertIn("data", result, "Should have data key")
-		self.assertIsInstance(result["data"], list, "data should be a list")
-
-		# If data is returned, verify po_no is in enriched fields
-		if len(result["data"]) > 0:
-			first_item = result["data"][0]
-			# Verify po_no is included alongside other enriched fields
-			enriched_fields = ["item_code", "parent", "doctype", "images", "po_no"]
-			for field in enriched_fields:
-				self.assertIn(
-					field,
-					first_item,
-					f"Enriched data should include '{field}'"
-				)
+			split_order_item(item_name="NONEXISTENT-ORDER-XYZ", split_qty=50)

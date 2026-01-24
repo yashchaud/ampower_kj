@@ -240,38 +240,37 @@ body{
 	color: #2d3748;
 }
 
-.workflow-table .table-action-btn {
-	background-color: var(--btn-dark-bg);
-	color: var(--btn-dark-text);
-	border: 1px solid var(--btn-dark-border);
-	padding: var(--btn-padding);
-	border-radius: var(--btn-border-radius);
-	font-weight: var(--btn-font-weight);
-	cursor: pointer;
-	font-size: var(--btn-font-size);
-	transition: var(--btn-transition);
+/* Elegant Actions Dropdown - Custom Easing */
+.ease-lux {
+	transition-timing-function: cubic-bezier(0.2, 0.8, 0.2, 1) !important;
 }
 
-.workflow-table .table-action-btn:hover {
-	background-color: var(--btn-dark-bg-hover);
-	border-color: var(--btn-dark-border-hover);
+/* Custom Tailwind shadows */
+.tw-shadow-soft {
+	box-shadow: 0 4px 20px -2px rgba(0, 0, 0, 0.05) !important;
 }
 
-.workflow-table .table-action-btn:active {
-	background-color: var(--btn-dark-bg-active);
+.tw-shadow-floating {
+	box-shadow: 0 20px 40px -10px rgba(0, 0, 0, 0.1) !important;
 }
 
-.workflow-table .table-action-btn:disabled {
-	background-color: var(--btn-dark-bg-disabled);
-	border-color: var(--btn-dark-border-disabled);
-	color: var(--btn-dark-text-disabled);
-	opacity: var(--btn-opacity-disabled);
-	cursor: var(--btn-cursor-disabled);
+/* Hover animation for list items - subtle slide */
+.list-item-hover span {
+	transition: transform 0.3s cubic-bezier(0.2, 0.8, 0.2, 1);
 }
 
-.workflow-table .table-action-btn:focus {
-	outline: none;
-	box-shadow: var(--btn-focus-shadow-dark);
+.list-item-hover:hover span {
+	transform: translateX(4px);
+}
+
+/* Dropdown wrapper positioning */
+.workflow-table #dropdown-wrapper {
+	max-width: 280px !important;
+}
+
+/* Make sure dropdown stays on top */
+.workflow-table .dropdown-menu-elegant {
+	z-index: 1000 !important;
 }
 
 .workflow-table table {
@@ -1174,7 +1173,7 @@ body{
 }
 /* General Layout & Fonts */
 .modal-wrapper {
-    font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+    font-family: "Outfit", sans-serif;
     background: #fff;
     padding: 20px;
     max-width: 900px;

@@ -1,0 +1,16 @@
+{
+  "name": "ampower_kj",
+  "version": "0.0.1",
+  "description": "Ampower KJ custom Frappe application with Vue 3 and Tailwind CSS",
+  "main": "index.js",
+  "scripts": {
+    "build": "npm run build:tailwind",
+    "build:tailwind": "npx tailwindcss -i ./ampower_kj/public/css/tailwind.src.css -o ./ampower_kj/public/css/tailwind.bundle.css --minify",
+    "watch:tailwind": "npx tailwindcss -i ./ampower_kj/public/css/tailwind.src.css -o ./ampower_kj/public/css/tailwind.bundle.css --watch"
+  },
+  "dependencies": {
+    "tailwindcss": "^3.4.0"
+  },
+  "devDependencies": {},
+  "license": "MIT"
+}

@@ -1,0 +1,1046 @@
+frappe.pages["custom-workflow"].on_page_load = function (wrapper) {
+	var page = frappe.ui.make_app_page({
+		parent: wrapper,
+		title: "Custom Workflow",
+		single_column: true,
+	});
+
+	// Load dialog components from public directory
+	if (!window.OrderDetailsDialog) {
+		const script = document.createElement('script');
+		script.type = 'module';
+		script.textContent = `
+			import { OrderDetailsDialog } from '/assets/ampower_kj/js/custom_workflow_components/order_details_dialog.js';
+			window.OrderDetailsDialog = OrderDetailsDialog;
+		`;
+		document.head.appendChild(script);
+	}
+
+	// Load Google Fonts
+	if (!document.getElementById('cw-google-fonts')) {
+		const fontLink = document.createElement('link');
+		fontLink.id = 'cw-google-fonts';
+		fontLink.rel = 'stylesheet';
+		fontLink.href = 'https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap';
+		document.head.appendChild(fontLink);
+	}
+
+	if (!document.getElementById('cw-material-icons')) {
+		const iconLink = document.createElement('link');
+		iconLink.id = 'cw-material-icons';
+		iconLink.rel = 'stylesheet';
+		iconLink.href = 'https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:opsz,wght,FILL,GRAD@20..48,100..700,0..1,-50..200&display=swap';
+		document.head.appendChild(iconLink);
+	}
+
+	// Initialize page state
+	page.current_tab = "Unassigned";
+	page.tabs_data = [
+		{ name: "Unassigned", count: 51 },
+		{ name: "Assigned", count: 276 },
+		{ name: "Incoming", count: 49 },
+		{ name: "Internal QA", count: 21 },
+		{ name: "Ready", count: 19 },
+		{ name: "Delivered", count: 18 },
+		{ name: "Cancelled", count: 0 }
+	];
+
+	// Sample data (replace with actual data from backend)
+	page.table_data = [
+		{
+			id: 1,
+			sno: "01",
+			customer: "_Test Customer",
+			karigar: null,
+			item_code: "FG-ITM-002",
+			item_details: "_Test FG Item 2 - Gold Finish",
+			texture: "Glossy",
+			qty: 1,
+			status: "Unassigned",
+			sales_order: "SO-2026-0005"
+		},
+		{
+			id: 2,
+			sno: "02",
+			customer: "Premium Jewelers",
+			karigar: { name: "Ram Singh", initial: "R", color: "indigo" },
+			item_code: "RNG-055",
+			item_details: "Diamond Ring - Size 7",
+			texture: "Polished",
+			qty: 12,
+			status: "Internal QA",
+			sales_order: "SO-2026-0012"
+		},
+		{
+			id: 3,
+			sno: "03",
+			customer: "_Test Supplier",
+			karigar: null,
+			item_code: "FG-ITM-003",
+			item_details: "Platinum Necklace Chain",
+			texture: "Matte",
+			qty: 5,
+			status: "Assigned",
+			sales_order: "SO-2026-0008"
+		},
+		{
+			id: 4,
+			sno: "04",
+			customer: "Luxe Boutique",
+			karigar: { name: "Kiran V.", initial: "K", color: "emerald" },
+			item_code: "BRC-010",
+			item_details: "Silver Bracelet - Engraved",
+			texture: "Brushed",
+			qty: 3,
+			status: "Incoming",
+			sales_order: "SO-2026-0015"
+		},
+		{
+			id: 5,
+			sno: "05",
+			customer: "Modern Gold",
+			karigar: null,
+			item_code: "PND-088",
+			item_details: "Ruby Pendant",
+			texture: "Shiny",
+			qty: 1,
+			status: "Unassigned",
+			sales_order: "SO-2026-0018"
+		}
+	];
+
+	// Build the UI
+	page.build_ui = function () {
+		page.main.empty();
+
+		const html = `
+			<!-- Tabs Section -->
+			<div class="cw-tabs-container">
+				<div class="cw-tabs">
+					${page.render_tabs()}
+				</div>
+			</div>
+
+			<!-- Toolbar Section -->
+			<div class="cw-toolbar">
+				<div class="cw-search-container">
+					<span class="material-symbols-outlined cw-search-icon">search</span>
+					<input class="cw-search-input" placeholder="Search orders, customers, items..." type="text"/>
+					<div class="cw-search-shortcut">⌘K</div>
+				</div>
+				<div class="cw-toolbar-actions">
+					<button class="cw-toolbar-btn">
+						<span class="material-symbols-outlined">tune</span>
+						Filters
+					</button>
+					<button class="cw-toolbar-btn">
+						<span class="material-symbols-outlined">view_column</span>
+						Columns
+					</button>
+					<div class="cw-toolbar-divider"></div>
+					<div class="cw-dropdown-wrapper">
+						<button class="cw-toolbar-btn cw-btn-primary cw-dropdown-btn" id="cw-action-btn">
+							<span class="material-symbols-outlined">bolt</span>
+							Actions
+							<span class="material-symbols-outlined cw-chevron" id="cw-action-chevron">keyboard_arrow_down</span>
+						</button>
+						<div class="cw-dropdown-menu cw-dropdown-hidden" id="cw-action-menu">
+							<div class="cw-dropdown-header">
+								<p class="cw-dropdown-label">Workflow Actions</p>
+								<div class="cw-dropdown-status">
+									<div class="cw-status-icon">
+										<span class="cw-status-dot-animated"></span>
+										<span class="cw-status-dot"></span>
+									</div>
+								</div>
+							</div>
+							<div class="cw-dropdown-body">
+								<a href="#" class="cw-dropdown-item" data-action="next">
+									<div class="cw-dropdown-item-icon cw-icon-emerald">
+										<span class="material-symbols-outlined">arrow_forward</span>
+									</div>
+									<div class="cw-dropdown-item-content">
+										<p class="cw-dropdown-item-title">Next Stage</p>
+										<p class="cw-dropdown-item-desc">Move to next workflow stage</p>
+									</div>
+								</a>
+								<a href="#" class="cw-dropdown-item" data-action="previous">
+									<div class="cw-dropdown-item-icon cw-icon-amber">
+										<span class="material-symbols-outlined">arrow_back</span>
+									</div>
+									<div class="cw-dropdown-item-content">
+										<p class="cw-dropdown-item-title">Previous Stage</p>
+										<p class="cw-dropdown-item-desc">Move back to previous stage</p>
+									</div>
+								</a>
+								<a href="#" class="cw-dropdown-item" data-action="split">
+									<div class="cw-dropdown-item-icon cw-icon-blue">
+										<span class="material-symbols-outlined">call_split</span>
+									</div>
+									<div class="cw-dropdown-item-content">
+										<p class="cw-dropdown-item-title">Split</p>
+										<p class="cw-dropdown-item-desc">Split into multiple items</p>
+									</div>
+								</a>
+							</div>
+						</div>
+					</div>
+				</div>
+			</div>
+
+			<!-- Table Section -->
+			<div class="cw-table-container-wrapper">
+				<div class="cw-table-container">
+					<div class="cw-table-scroll">
+						<table class="cw-table">
+							<thead>
+								<tr>
+									<th class="cw-th-checkbox">
+										<input type="checkbox" class="cw-select-all"/>
+									</th>
+									<th class="cw-th-sno cw-sortable">
+										<div class="cw-th-content">
+											S.No
+											<span class="material-symbols-outlined">arrow_drop_down</span>
+										</div>
+									</th>
+									<th class="cw-sortable">
+										<div class="cw-th-content">
+											Customer
+											<span class="material-symbols-outlined">sort</span>
+										</div>
+									</th>
+									<th class="cw-sortable">
+										<div class="cw-th-content">
+											Karigar
+											<span class="material-symbols-outlined">sort</span>
+										</div>
+									</th>
+									<th class="cw-sortable">
+										<div class="cw-th-content">
+											Item Code
+											<span class="material-symbols-outlined">sort</span>
+										</div>
+									</th>
+									<th class="cw-th-item-details cw-sortable">
+										<div class="cw-th-content">
+											Item Details
+											<span class="material-symbols-outlined">sort</span>
+										</div>
+									</th>
+									<th class="cw-sortable">
+										<div class="cw-th-content">
+											Texture
+											<span class="material-symbols-outlined">filter_list</span>
+										</div>
+									</th>
+									<th class="cw-th-qty cw-sortable">
+										<div class="cw-th-content cw-th-center">
+											Qty
+											<span class="material-symbols-outlined">sort</span>
+										</div>
+									</th>
+									<th class="cw-sortable">
+										<div class="cw-th-content">
+											Status
+											<span class="material-symbols-outlined">filter_alt</span>
+										</div>
+									</th>
+									<th class="cw-sortable">
+										<div class="cw-th-content">
+											Sales Order
+											<span class="material-symbols-outlined">search</span>
+										</div>
+									</th>
+									<th>
+										<div class="cw-th-content">
+											Actions
+										</div>
+									</th>
+								</tr>
+							</thead>
+							<tbody>
+								${page.render_table_rows()}
+							</tbody>
+						</table>
+					</div>
+
+					<!-- Pagination -->
+					<div class="cw-pagination-container">
+						<div class="cw-pagination-info">
+							<p>
+								Showing <span>1</span> to <span>${page.table_data.length}</span> of <span>51</span> results
+							</p>
+						</div>
+						<div>
+							<nav class="cw-pagination-nav" aria-label="Pagination">
+								<a href="#" class="cw-page-link">
+									<span class="sr-only">Previous</span>
+									<span class="material-symbols-outlined">chevron_left</span>
+								</a>
+								<a href="#" class="cw-page-link active" aria-current="page">1</a>
+								<a href="#" class="cw-page-link">2</a>
+								<a href="#" class="cw-page-link">3</a>
+								<a href="#" class="cw-page-link">
+									<span class="sr-only">Next</span>
+									<span class="material-symbols-outlined">chevron_right</span>
+								</a>
+							</nav>
+						</div>
+					</div>
+				</div>
+			</div>
+		`;
+
+		page.main.html(html);
+		page.attach_event_handlers();
+	};
+
+	// Render tabs
+	page.render_tabs = function () {
+		return page.tabs_data.map(tab => `
+			<button class="cw-tab ${tab.name === page.current_tab ? 'active' : ''}" data-tab="${tab.name}">
+				<div class="cw-tab-content">
+					<span class="cw-tab-label">${tab.name}</span>
+					<span class="cw-tab-badge">${tab.count}</span>
+				</div>
+				<div class="cw-tab-underline"></div>
+			</button>
+		`).join('');
+	};
+
+	// Render table rows
+	page.render_table_rows = function () {
+		return page.table_data.map((row) => {
+			// Karigar cell - either badge or avatar with name
+			const karigar_html = row.karigar
+				? `<div class="cw-karigar-avatar">
+						<div class="cw-avatar-circle cw-avatar-${row.karigar.color}">${row.karigar.initial}</div>
+						${row.karigar.name}
+					</div>`
+				: `<span class="cw-badge cw-badge-unassigned">Unassigned</span>`;
+
+			// Status class based on status
+			const status_class = page.get_status_class(row.status);
+
+			return `
+				<tr data-id="${row.id}">
+					<td>
+						<input type="checkbox" class="cw-row-checkbox"/>
+					</td>
+					<td class="cw-td-gray cw-td-mono">${row.sno}</td>
+					<td class="cw-td-semibold">${row.customer}</td>
+					<td>${karigar_html}</td>
+					<td class="cw-td-mono cw-td-gray">${row.item_code}</td>
+					<td class="cw-td-item-details cw-td-medium">${row.item_details}</td>
+					<td class="cw-td-gray">${row.texture}</td>
+					<td class="cw-td-bold cw-td-center">${row.qty}</td>
+					<td>
+						<button class="cw-status-btn ${status_class}">
+							<span class="cw-status-dot"></span>
+							${row.status}
+							<span class="material-symbols-outlined cw-status-icon">expand_more</span>
+						</button>
+					</td>
+					<td>
+						<a href="#" class="cw-sales-order-link" data-sales-order="${row.sales_order}">${row.sales_order}</a>
+					</td>
+					<td>
+						<button class="cw-actions-btn">
+							<span class="material-symbols-outlined">more_horiz</span>
+						</button>
+					</td>
+				</tr>
+			`;
+		}).join('');
+	};
+
+	// Get status CSS class based on status name
+	page.get_status_class = function (status) {
+		const status_map = {
+			'Unassigned': 'cw-status-unassigned',
+			'Assigned': 'cw-status-assigned',
+			'Incoming': 'cw-status-incoming',
+			'Internal QA': 'cw-status-qa',
+			'Ready': 'cw-status-ready',
+			'Delivered': 'cw-status-delivered',
+			'Cancelled': 'cw-status-cancelled'
+		};
+		return status_map[status] || 'cw-status-unassigned';
+	};
+
+	// Get next stage in workflow
+	page.get_next_stage = function (current_stage) {
+		const stage_index = page.tabs_data.findIndex(tab => tab.name === current_stage);
+		if (stage_index < page.tabs_data.length - 1) {
+			return page.tabs_data[stage_index + 1].name;
+		}
+		return null;
+	};
+
+	// Get previous stage in workflow
+	page.get_previous_stage = function (current_stage) {
+		const stage_index = page.tabs_data.findIndex(tab => tab.name === current_stage);
+		if (stage_index > 0) {
+			return page.tabs_data[stage_index - 1].name;
+		}
+		return null;
+	};
+
+	// Show dialog based on workflow transition
+	page.show_transition_dialog = function (from_status, to_status) {
+		// Determine which dialog to show based on transition
+		if (from_status === 'Incoming' && to_status === 'Internal QA') {
+			// Use order details dialog for Incoming to QA transition
+			// You can pass actual order data here instead of default sample data
+			page.show_incoming_to_qa_dialog_with_details();
+
+			// Or use the simple form dialog:
+			// page.show_incoming_to_qa_dialog();
+		} else if (from_status === 'Pending Delivery' && to_status === 'Delivered') {
+			page.show_delivery_dialog();
+		} else {
+			page.show_generic_transition_dialog(from_status, to_status);
+		}
+	};
+
+	// Dialog 1: Incoming to Internal QA
+	page.show_incoming_to_qa_dialog = function () {
+		const dialog = new frappe.ui.Dialog({
+			title: 'Move to Internal QA',
+			fields: [
+				{
+					label: 'QA Notes',
+					fieldname: 'qa_notes',
+					fieldtype: 'Small Text',
+					reqd: 1,
+					description: 'Add notes for quality assurance review'
+				},
+				{
+					label: 'QA Assignee',
+					fieldname: 'qa_assignee',
+					fieldtype: 'Link',
+					options: 'User',
+					reqd: 1,
+					description: 'Assign to quality inspector'
+				},
+				{
+					label: 'Priority',
+					fieldname: 'priority',
+					fieldtype: 'Select',
+					options: ['Low', 'Medium', 'High', 'Urgent'],
+					default: 'Medium'
+				},
+				{
+					label: 'Expected QA Date',
+					fieldname: 'expected_qa_date',
+					fieldtype: 'Date',
+					reqd: 1
+				}
+			],
+			primary_action_label: 'Move to QA',
+			primary_action(values) {
+				frappe.msgprint({
+					title: 'QA Transition',
+					message: `Moving to Internal QA<br>
+						Notes: ${values.qa_notes}<br>
+						Assignee: ${values.qa_assignee}<br>
+						Priority: ${values.priority}<br>
+						Expected Date: ${values.expected_qa_date}`,
+					indicator: 'blue'
+				});
+				dialog.hide();
+			}
+		});
+		dialog.show();
+	};
+
+	// Order Details Dialog: Incoming to Internal QA with Order Details
+	page.show_incoming_to_qa_dialog_with_details = function (orderData) {
+		// Check if dialog component is loaded
+		if (!window.OrderDetailsDialog) {
+			frappe.msgprint({
+				title: 'Loading',
+				message: 'Dialog component is still loading. Please try again.',
+				indicator: 'orange'
+			});
+			return;
+		}
+
+		// Default sample data if no order data is provided
+		const defaultData = {
+			orderId: '#2024-001',
+			itemName: 'Gold Necklace',
+			itemCode: '#GN-5502',
+			itemGroup: 'Jewelry / Gold',
+			customer: {
+				name: 'Aditi Sharma',
+				initials: 'AS',
+				color: '#7c3aed'
+			},
+			karigar: {
+				name: 'Rajesh Kumar',
+				title: 'Master Craftsman',
+				id: '#KG-882',
+				avatarUrl: 'https://lh3.googleusercontent.com/aida-public/AB6AXuA7X-WI-Dwma3ddWGGhmwccZSV58zmdprhMeH_2EKmeUPARTIqSr4cp9oz0j8Q5hM2qaJzt1RX1CZLT59VVYW9kNqM_QoAvGnb9gBtYpWCnJoLZ0E5gTVhfwmQpWPGrK-34KRD5okPQV4wRAfKLqNmz9g8r1p3ZEiH0pEV0c-_lXJFe3oGC9IkAeGg1oAx2JR8TrirV2NYv2BXZvIgGTDrvfnAvAoABOGKLH357k8CGB2cAwn13YDwfmBCUn2Q0CWMDzYIXfe6ZuZ5g'
+			},
+			label: {
+				icon: 'label',
+				text: 'Custom Engraving'
+			},
+			notes: {
+				text: 'Client requested specific floral pattern on the clasp. Ensure polish is matte finish on the chain links but glossy on the pendant.',
+				timestamp: '2h ago'
+			},
+			specs: {
+				netWeight: '24.5 g',
+				purity: '22 K'
+			},
+			images: [
+				'https://lh3.googleusercontent.com/aida-public/AB6AXuDdxfCNON6lIRW7lViOW7fVdfNMW_cEMpNbBi0bVoRwxnUu-izG5bry1woNf6w1OQlHKEU_Rq-igm66zPql7DcRYbGm158NblGCS_ZqvbpNE7rEvrqcbBjfeS4eo5ItmRDxYvCf7TUm-AeqJhhCrG2wJDot-uw_N0MpypQ66EK82g3KQl-mZGwCfZH75idg-TrJiiFtljieOGNSdUygnUkBRBpa0EBpBqzR-kxhbEh5Pth1dpvVwQsXXymOQV0UjeJoV5OpUV56OxKw',
+				'https://lh3.googleusercontent.com/aida-public/AB6AXuBsMwcoKkhkVVb7iADEDSGgiIdrbyWdEMl_-4c9N-ypoYxHn-fHuYR4rupSahR_LLpzxTooclpr870-nDgd65RNlKj-Qlj2iCPz0myBnNbZNJBNPgZ_8YW5_8TrdzVGuN5eTsS2iRgVqdGTGo1pMxhcvU35whfN0fQquxsZdgb4l_LDjJkCBJkhPyjJ4ay9KJ1RDs82o6VVEWETlPK4GZL1YIcoRVF9XuMBOi0gii3_jjPO4lOiiGhabAEWsd4iaE2jIrKE0C-cXYON',
+				'https://lh3.googleusercontent.com/aida-public/AB6AXuC3QubGlgeqwkCbnTltX5VKlO_ENpi1FaP_sWn-WGsIF4XloN_VKMcPn0A8DNVlQibbT7RUE8pR74IuDLyTpOM9_9ihC41mYt1tEos_YYijSH8AuzBmuiaMQc7xzUanmquieutRZ3wShbilMpR2baNUJWJQI77b-Hoiulfo67V65IofLUzsEobR4GkFfHHE3mh0szr5cXwIDwaJEvitovSj_id68_DrRHG-MFHc2O6hZPmMxsF2VuIyb_LDzof3aT_h9lVWBxV25D_6',
+				'https://lh3.googleusercontent.com/aida-public/AB6AXuCid8-zRmHNH9kqKKAN8jJV5ysCSKc36kn2-eiS4gIAXZk7RNnkEF3RzaOkRcwD_QHVD0ukncbLhGYjJhYFDyy0Olg2Tan99vYeMpf5RuuY-KyTEstp2-tmze7oyfBvBn4Dej1Dy2Ac8bF8jbYhrJ4MRJVWQVsHYpgpjPVwusOQlc9bQDjSXz5dmAiJyhfalHb7YlgCPr-WBQlarDtTcqSDzUDrW5tZS0OZSojrnp2n4SVCKQ8WyN7tOlEB6qxPLgKbH2bSx9GuN12e'
+			],
+			dueDate: 'Oct 24, 2024'
+		};
+
+		const data = orderData || defaultData;
+
+		// Show the dialog
+		const dialog = window.OrderDetailsDialog.show({
+			...data,
+			onFillDetails: function() {
+				frappe.msgprint({
+					title: 'Fill Details',
+					message: 'Fill Details functionality would open a form to input QA-specific information.',
+					indicator: 'blue'
+				});
+			},
+			onPrintLabel: function() {
+				frappe.msgprint({
+					title: 'Print Label',
+					message: 'Printing label for order ' + data.orderId,
+					indicator: 'green'
+				});
+			},
+			onSaveChanges: function() {
+				// This is where you would collect the QA data and update the order
+				frappe.call({
+					method: 'ampower_kj.api.update_order_status',
+					args: {
+						order_id: data.orderId,
+						from_status: 'Incoming',
+						to_status: 'Internal QA',
+						qa_notes: data.notes.text,
+						// Add other fields as needed
+					},
+					callback: function(r) {
+						if (r.message) {
+							frappe.show_alert({
+								message: 'Order moved to Internal QA successfully!',
+								indicator: 'green'
+							}, 3);
+							dialog.hide();
+							// Refresh the table or update UI
+						}
+					}
+				});
+			},
+			onClose: function() {
+				console.log('Dialog closed');
+			},
+			onOpenInNewTab: function() {
+				// Open the order in a new tab
+				window.open('/app/sales-order/' + data.orderId.replace('#', ''), '_blank');
+			}
+		});
+	};
+
+	// Dialog 2: Pending Delivery to Delivered
+	page.show_delivery_dialog = function () {
+		const dialog = new frappe.ui.Dialog({
+			title: 'Mark as Delivered',
+			fields: [
+				{
+					label: 'Delivery Date',
+					fieldname: 'delivery_date',
+					fieldtype: 'Datetime',
+					reqd: 1,
+					default: frappe.datetime.now_datetime()
+				},
+				{
+					label: 'Delivery Person',
+					fieldname: 'delivery_person',
+					fieldtype: 'Link',
+					options: 'User',
+					reqd: 1
+				},
+				{
+					label: 'Tracking Number',
+					fieldname: 'tracking_number',
+					fieldtype: 'Data',
+					description: 'Courier tracking number (if applicable)'
+				},
+				{
+					label: 'Customer Signature',
+					fieldname: 'customer_signature',
+					fieldtype: 'Attach',
+					description: 'Upload customer signature or proof of delivery'
+				},
+				{
+					label: 'Delivery Notes',
+					fieldname: 'delivery_notes',
+					fieldtype: 'Small Text',
+					description: 'Any additional delivery notes'
+				},
+				{
+					label: 'Send Notification',
+					fieldname: 'send_notification',
+					fieldtype: 'Check',
+					default: 1,
+					description: 'Send delivery confirmation to customer'
+				}
+			],
+			primary_action_label: 'Confirm Delivery',
+			primary_action(values) {
+				frappe.msgprint({
+					title: 'Delivery Confirmed',
+					message: `Item marked as delivered<br>
+						Delivery Date: ${values.delivery_date}<br>
+						Delivered By: ${values.delivery_person}<br>
+						Tracking: ${values.tracking_number || 'N/A'}<br>
+						Notification: ${values.send_notification ? 'Yes' : 'No'}`,
+					indicator: 'green'
+				});
+				dialog.hide();
+			}
+		});
+		dialog.show();
+	};
+
+	// Dialog 3: Generic transition for all other cases (Custom HTML Dialog from dialog.html)
+	page.show_generic_transition_dialog = function (from_status, to_status) {
+		// Remove any existing custom dialog
+		$('.cw-custom-dialog-wrapper').remove();
+
+		// Get selected items count
+		const selected_count = page.main.find('.cw-row-checkbox:checked').length;
+
+		// Get first selected item data (for display)
+		const first_item = page.table_data[0]; // In real implementation, get actual selected item
+
+		// Create custom dialog HTML matching dialog.html structure
+		const dialog_html = `
+			<div class="cw-custom-dialog-wrapper" style="position: fixed; inset: 0; z-index: 1050; font-family: 'Inter', sans-serif;">
+				<style>
+					.cw-dialog-wrapper * { box-sizing: border-box; }
+					.cw-dialog-scrollbar::-webkit-scrollbar { width: 6px; }
+					.cw-dialog-scrollbar::-webkit-scrollbar-track { background: transparent; }
+					.cw-dialog-scrollbar::-webkit-scrollbar-thumb { background-color: #cbd5e1; border-radius: 20px; }
+					.cw-dialog-close:hover { background-color: #f1f5f9 !important; color: #475569 !important; }
+					.cw-dialog-nav-btn:hover { background-color: #f8fafc !important; }
+					.cw-dialog-image:hover span { transform: scale(1.1); }
+					.cw-dialog-info-card:hover { background-color: white !important; border-color: #e2e8f0 !important; box-shadow: 0 1px 2px 0 rgba(0, 0, 0, 0.05); }
+					.cw-dialog-btn-secondary:hover { background-color: white !important; border-color: #94a3b8 !important; }
+					.cw-dialog-btn-primary:hover { background: linear-gradient(to bottom, #0288d1, #0277bd) !important; box-shadow: 0 10px 15px -3px rgba(2, 119, 189, 0.4) !important; transform: translateY(-1px); }
+					.cw-dialog-btn-primary:active { transform: scale(0.98); }
+				</style>
+
+				<!-- Backdrop -->
+				<div class="cw-dialog-backdrop" style="position: fixed; inset: 0; background-color: rgba(15, 23, 42, 0.4); backdrop-filter: blur(2px); z-index: 40;"></div>
+
+				<!-- Modal Container -->
+				<div style="position: relative; width: 100%; height: 100%; display: flex; align-items: center; justify-content: center; padding: 1rem; z-index: 50;">
+					<div style="position: relative; width: 100%; max-width: 48rem; max-height: 90vh; display: flex; flex-direction: column;">
+
+						<!-- Main Card -->
+						<div style="background-color: white; border-radius: 1rem; box-shadow: 0 20px 25px -5px rgba(0, 0, 0, 0.1), 0 10px 10px -5px rgba(0,0,0,0.04); overflow: hidden; display: flex; flex-direction: column; border: 1px solid rgba(0,0,0,0.05);">
+
+							<!-- Header -->
+							<div style="padding: 1rem 1.5rem; border-bottom: 1px solid #f1f5f9; display: flex; align-items: center; justify-content: space-between; background-color: white; position: sticky; top: 0; z-index: 10;">
+								<div style="display: flex; align-items: center; gap: 0.75rem;">
+									<div style="width: 2rem; height: 2rem; border-radius: 0.5rem; background-color: #e1f5fe; display: flex; align-items: center; justify-content: center; color: #0277bd;">
+										<span class="material-symbols-outlined">inventory_2</span>
+									</div>
+									<div>
+										<h2 style="font-size: 1.125rem; font-weight: 700; line-height: 1; margin-bottom: 0.1rem;">Order Details</h2>
+										<span style="font-size: 0.75rem; color: #64748b; font-weight: 500;">ID: #ORD-2491-X</span>
+									</div>
+								</div>
+								<button class="cw-dialog-close" style="background: none; border: none; cursor: pointer; color: #94a3b8; padding: 0.5rem; border-radius: 9999px; transition: all 0.2s; display: flex; align-items: center; justify-content: center;">
+									<span class="material-symbols-outlined">close</span>
+								</button>
+							</div>
+
+							<!-- Toolbar / Navigation -->
+							<div style="background-color: rgba(248, 250, 252, 0.8); padding: 0.5rem 1.5rem; border-bottom: 1px solid #f1f5f9; display: flex; align-items: center; justify-content: space-between; backdrop-filter: blur(4px);">
+								<div>
+									<span style="padding: 0.125rem 0.5rem; border-radius: 0.25rem; font-size: 0.625rem; font-weight: 700; text-transform: uppercase; letter-spacing: 0.05em; background-color: #fef3c7; color: #b45309; border: 1px solid #fde68a;">
+										${from_status}
+									</span>
+								</div>
+								<div style="display: flex; align-items: center; gap: 0.75rem;">
+									<span style="font-size: 0.75rem; font-weight: 600; color: #64748b;">1 <span style="font-weight: 400; color: #94a3b8;">of</span> ${selected_count}</span>
+									<div style="display: flex; align-items: center; border-radius: 0.5rem; background-color: white; border: 1px solid #e2e8f0; overflow: hidden;">
+										<button class="cw-dialog-nav-btn" style="padding: 0.375rem; background: none; border: none; cursor: pointer; color: #64748b; transition: background-color 0.2s; display: flex; border-right: 1px solid #e2e8f0;">
+											<span class="material-symbols-outlined">chevron_left</span>
+										</button>
+										<button class="cw-dialog-nav-btn" style="padding: 0.375rem; background: none; border: none; cursor: pointer; color: #64748b; transition: background-color 0.2s; display: flex;">
+											<span class="material-symbols-outlined">chevron_right</span>
+										</button>
+									</div>
+								</div>
+							</div>
+
+							<!-- Scrollable Content Body -->
+							<div class="cw-dialog-scrollbar" style="overflow-y: auto; padding: 1.5rem 2rem; background-color: white;">
+
+								<!-- Hero Item Section -->
+								<div style="display: flex; flex-direction: column; gap: 1.5rem; margin-bottom: 2rem;">
+									<!-- Image Placeholder -->
+									<div class="cw-dialog-image" style="width: 8rem; height: 8rem; flex-shrink: 0; border-radius: 0.75rem; background: linear-gradient(to bottom right, #f1f5f9, #e2e8f0); border: 1px solid #e2e8f0; display: flex; align-items: center; justify-content: center; color: #94a3b8; cursor: pointer; overflow: hidden;">
+										<span class="material-symbols-outlined" style="font-size: 2.25rem; transition: transform 0.3s;">diamond</span>
+									</div>
+
+									<!-- Item Info -->
+									<div style="flex: 1; display: flex; flex-direction: column; justify-content: center;">
+										<label style="font-size: 0.75rem; font-weight: 700; color: #0277bd; text-transform: uppercase; letter-spacing: 0.1em; margin-bottom: 0.25rem;">Item Name</label>
+										<h1 style="font-size: 1.875rem; font-weight: 700; margin-bottom: 0.5rem; letter-spacing: -0.025em;">${first_item.item_code}</h1>
+										<p style="font-size: 0.875rem; color: #64748b; line-height: 1.6; max-width: 28rem; margin-bottom: 1rem;">
+											${first_item.item_details}
+										</p>
+										<div style="display: flex; gap: 0.5rem;">
+											<div style="display: inline-flex; align-items: center; gap: 0.25rem; padding: 0.25rem 0.625rem; border-radius: 0.375rem; background-color: #f1f5f9; color: #475569; font-size: 0.75rem; font-weight: 500;">
+												<span class="material-symbols-outlined" style="font-size: 14px;">category</span>
+												Test Group
+											</div>
+											<div style="display: inline-flex; align-items: center; gap: 0.25rem; padding: 0.25rem 0.625rem; border-radius: 0.375rem; background-color: #f1f5f9; color: #475569; font-size: 0.75rem; font-weight: 500;">
+												<span class="material-symbols-outlined" style="font-size: 14px;">scale</span>
+												24.5g
+											</div>
+										</div>
+									</div>
+								</div>
+
+								<div style="height: 1px; width: 100%; background-color: #f1f5f9; margin-bottom: 2rem;"></div>
+
+								<!-- Info Grid -->
+								<div style="display: grid; grid-template-columns: repeat(2, 1fr); gap: 1.5rem;">
+
+									<!-- Customer Card -->
+									<div class="cw-dialog-info-card" style="padding: 1rem; border-radius: 0.75rem; background-color: #f8fafc; border: 1px solid transparent; transition: all 0.2s; display: flex; align-items: flex-start; gap: 1rem;">
+										<div style="padding: 0.5rem; border-radius: 0.5rem; background-color: white; box-shadow: 0 1px 2px 0 rgba(0, 0, 0, 0.05); display: flex; align-items: center; justify-content: center; color: #3b82f6;">
+											<span class="material-symbols-outlined">person</span>
+										</div>
+										<div>
+											<label style="display: block; font-size: 0.75rem; font-weight: 600; color: #64748b; text-transform: uppercase; letter-spacing: 0.025em;">Customer</label>
+											<div style="font-size: 1.125rem; font-weight: 700; margin-top: 0.125rem;">${first_item.customer}</div>
+											<div style="font-size: 0.75rem; color: #94a3b8; margin-top: 0.25rem;">ID: CUST-8821</div>
+										</div>
+									</div>
+
+									<!-- Karigar Card -->
+									<div class="cw-dialog-info-card" style="padding: 1rem; border-radius: 0.75rem; background-color: #f8fafc; border: 1px solid transparent; transition: all 0.2s; display: flex; align-items: flex-start; gap: 1rem;">
+										<div style="padding: 0.5rem; border-radius: 0.5rem; background-color: white; box-shadow: 0 1px 2px 0 rgba(0, 0, 0, 0.05); display: flex; align-items: center; justify-content: center; color: #a855f7;">
+											<span class="material-symbols-outlined">engineering</span>
+										</div>
+										<div>
+											<label style="display: block; font-size: 0.75rem; font-weight: 600; color: #64748b; text-transform: uppercase; letter-spacing: 0.025em;">Karigar</label>
+											<div style="font-size: 1.125rem; font-weight: 700; margin-top: 0.125rem;">Testkarigar</div>
+											<div style="font-size: 0.75rem; color: #94a3b8; margin-top: 0.25rem;">Workshop A - Bench 4</div>
+										</div>
+									</div>
+
+									<!-- Group Card -->
+									<div class="cw-dialog-info-card" style="padding: 1rem; border-radius: 0.75rem; background-color: #f8fafc; border: 1px solid transparent; transition: all 0.2s; display: flex; align-items: flex-start; gap: 1rem;">
+										<div style="padding: 0.5rem; border-radius: 0.5rem; background-color: white; box-shadow: 0 1px 2px 0 rgba(0, 0, 0, 0.05); display: flex; align-items: center; justify-content: center; color: #10b981;">
+											<span class="material-symbols-outlined">folder_open</span>
+										</div>
+										<div>
+											<label style="display: block; font-size: 0.75rem; font-weight: 600; color: #64748b; text-transform: uppercase; letter-spacing: 0.025em;">Item Group</label>
+											<div style="font-size: 1.125rem; font-weight: 700; margin-top: 0.125rem;">Test</div>
+											<div style="font-size: 0.75rem; color: #94a3b8; margin-top: 0.25rem;">Batch #9921</div>
+										</div>
+									</div>
+
+									<!-- Date Card -->
+									<div class="cw-dialog-info-card" style="padding: 1rem; border-radius: 0.75rem; background-color: #f8fafc; border: 1px solid transparent; transition: all 0.2s; display: flex; align-items: flex-start; gap: 1rem;">
+										<div style="padding: 0.5rem; border-radius: 0.5rem; background-color: white; box-shadow: 0 1px 2px 0 rgba(0, 0, 0, 0.05); display: flex; align-items: center; justify-content: center; color: #f97316;">
+											<span class="material-symbols-outlined">calendar_today</span>
+										</div>
+										<div>
+											<label style="display: block; font-size: 0.75rem; font-weight: 600; color: #64748b; text-transform: uppercase; letter-spacing: 0.025em;">Order Date</label>
+											<div style="font-size: 1.125rem; font-weight: 700; margin-top: 0.125rem;">${first_item.created_date}</div>
+											<div style="font-size: 0.75rem; color: #94a3b8; margin-top: 0.25rem;">Due: ${first_item.due_date}</div>
+										</div>
+									</div>
+
+								</div>
+							</div>
+
+							<!-- Footer / Actions -->
+							<div style="padding: 1.5rem; background-color: #f8fafc; border-top: 1px solid #f1f5f9; display: flex; gap: 0.75rem; justify-content: flex-end;">
+								<button class="cw-dialog-btn-secondary" style="display: inline-flex; align-items: center; justify-content: center; gap: 0.5rem; padding: 0.625rem 1.5rem; border-radius: 0.5rem; font-size: 0.875rem; font-weight: 600; cursor: pointer; transition: all 0.2s; background-color: transparent; border: 1px solid #cbd5e1; color: #334155;">
+									<span class="material-symbols-outlined" style="font-size: 1.125rem;">low_priority</span>
+									Move to ${from_status}
+								</button>
+								<button class="cw-dialog-btn-primary" style="display: inline-flex; align-items: center; justify-content: center; gap: 0.5rem; padding: 0.625rem 1.5rem; border-radius: 0.5rem; font-size: 0.875rem; font-weight: 600; cursor: pointer; transition: all 0.2s; background: linear-gradient(to bottom, #0277bd, #01579b); border: none; color: white; box-shadow: 0 10px 15px -3px rgba(2, 119, 189, 0.2);">
+									<span class="material-symbols-outlined" style="font-size: 1.125rem;">input</span>
+									Move to ${to_status}
+								</button>
+							</div>
+						</div>
+					</div>
+				</div>
+			</div>
+		`;
+
+		// Append to body
+		$('body').append(dialog_html);
+
+		// Event handlers
+		const wrapper = $('.cw-custom-dialog-wrapper');
+
+		// Close button and backdrop
+		wrapper.find('.cw-dialog-close, .cw-dialog-backdrop').on('click', function () {
+			wrapper.fadeOut(200, function () {
+				wrapper.remove();
+			});
+		});
+
+		// Secondary button (cancel/back)
+		wrapper.find('.cw-dialog-btn-secondary').on('click', function () {
+			wrapper.fadeOut(200, function () {
+				wrapper.remove();
+			});
+		});
+
+		// Primary button (confirm move)
+		wrapper.find('.cw-dialog-btn-primary').on('click', function () {
+			frappe.msgprint({
+				title: 'Status Updated',
+				message: `${selected_count} item(s) moved from ${from_status} to ${to_status}`,
+				indicator: 'green'
+			});
+
+			wrapper.fadeOut(200, function () {
+				wrapper.remove();
+			});
+		});
+
+		// Show with animation
+		wrapper.hide().fadeIn(200);
+	};
+
+	// Dialog 4: Split dialog
+	page.show_split_dialog = function () {
+		const dialog = new frappe.ui.Dialog({
+			title: 'Split Item',
+			fields: [
+				{
+					label: 'Number of Parts',
+					fieldname: 'num_parts',
+					fieldtype: 'Int',
+					reqd: 1,
+					default: 2,
+					description: 'How many parts to split into'
+				},
+				{
+					label: 'Split Details',
+					fieldname: 'split_details_section',
+					fieldtype: 'Section Break'
+				},
+				{
+					label: 'Part 1 Quantity',
+					fieldname: 'part1_qty',
+					fieldtype: 'Float',
+					reqd: 1
+				},
+				{
+					label: 'Part 1 Description',
+					fieldname: 'part1_desc',
+					fieldtype: 'Data',
+					reqd: 1
+				},
+				{
+					label: 'Part 2 Quantity',
+					fieldname: 'part2_qty',
+					fieldtype: 'Float',
+					reqd: 1
+				},
+				{
+					label: 'Part 2 Description',
+					fieldname: 'part2_desc',
+					fieldtype: 'Data',
+					reqd: 1
+				},
+				{
+					label: 'Split Reason',
+					fieldname: 'split_reason',
+					fieldtype: 'Small Text',
+					reqd: 1,
+					description: 'Reason for splitting this item'
+				}
+			],
+			primary_action_label: 'Split Item',
+			primary_action(values) {
+				frappe.msgprint({
+					title: 'Item Split',
+					message: `Item split into ${values.num_parts} parts<br>
+						Part 1: ${values.part1_qty} - ${values.part1_desc}<br>
+						Part 2: ${values.part2_qty} - ${values.part2_desc}<br>
+						Reason: ${values.split_reason}`,
+					indicator: 'purple'
+				});
+				dialog.hide();
+			}
+		});
+		dialog.show();
+	};
+
+	// Attach event handlers
+	page.attach_event_handlers = function () {
+		// Tab click handlers - Just change tabs, no dialog
+		page.main.find('.cw-tab').on('click', function () {
+			const tab_name = $(this).data('tab');
+			page.current_tab = tab_name;
+			page.build_ui();
+		});
+
+		// Select all checkbox
+		page.main.find('.cw-select-all').on('change', function () {
+			const is_checked = $(this).prop('checked');
+			page.main.find('.cw-row-checkbox').prop('checked', is_checked);
+		});
+
+		// Row checkboxes
+		page.main.find('.cw-row-checkbox').on('change', function () {
+			const total_checkboxes = page.main.find('.cw-row-checkbox').length;
+			const checked_checkboxes = page.main.find('.cw-row-checkbox:checked').length;
+			page.main.find('.cw-select-all').prop('checked', total_checkboxes === checked_checkboxes);
+		});
+
+		// Sales order link clicks
+		page.main.find('.cw-sales-order-link').on('click', function (e) {
+			e.preventDefault();
+			const sales_order = $(this).text();
+			frappe.set_route('Form', 'Sales Order', sales_order);
+		});
+
+		// Status button clicks - Shows dialog based on current and target status
+		page.main.find('.cw-status-btn').on('click', function () {
+			const current_status = page.current_tab;
+			// For demo, show a status selector dialog
+			const d = new frappe.ui.Dialog({
+				title: 'Change Status',
+				fields: [
+					{
+						label: 'New Status',
+						fieldname: 'new_status',
+						fieldtype: 'Select',
+						options: page.tabs_data.map(tab => tab.name).join('\n'),
+						reqd: 1
+					}
+				],
+				primary_action_label: 'Continue',
+				primary_action(values) {
+					d.hide();
+					page.show_transition_dialog(current_status, values.new_status);
+				}
+			});
+			d.show();
+		});
+
+		// Actions dropdown toggle
+		let action_dropdown_open = false;
+		const action_btn = page.main.find('#cw-action-btn');
+		const action_menu = page.main.find('#cw-action-menu');
+		const action_chevron = page.main.find('#cw-action-chevron');
+		const dropdown_wrapper = page.main.find('.cw-dropdown-wrapper');
+
+		action_btn.on('click', function (e) {
+			e.stopPropagation();
+			action_dropdown_open = !action_dropdown_open;
+
+			if (action_dropdown_open) {
+				action_menu.removeClass('cw-dropdown-hidden').addClass('cw-dropdown-visible');
+				action_chevron.css('transform', 'rotate(180deg)');
+			} else {
+				action_menu.removeClass('cw-dropdown-visible').addClass('cw-dropdown-hidden');
+				action_chevron.css('transform', 'rotate(0deg)');
+			}
+		});
+
+		// Close dropdown when clicking outside
+		$(document).on('click', function (e) {
+			if (action_dropdown_open && !dropdown_wrapper.is(e.target) && dropdown_wrapper.has(e.target).length === 0) {
+				action_menu.removeClass('cw-dropdown-visible').addClass('cw-dropdown-hidden');
+				action_chevron.css('transform', 'rotate(0deg)');
+				action_dropdown_open = false;
+			}
+		});
+
+		// Close dropdown on escape key
+		$(document).on('keydown', function (e) {
+			if (e.key === 'Escape' && action_dropdown_open) {
+				action_menu.removeClass('cw-dropdown-visible').addClass('cw-dropdown-hidden');
+				action_chevron.css('transform', 'rotate(0deg)');
+				action_dropdown_open = false;
+			}
+		});
+
+		// Dropdown item clicks
+		page.main.find('.cw-dropdown-item').on('click', function (e) {
+			e.preventDefault();
+			const action = $(this).data('action');
+			const current_status = page.current_tab;
+
+			// Close dropdown
+			action_menu.removeClass('cw-dropdown-visible').addClass('cw-dropdown-hidden');
+			action_chevron.css('transform', 'rotate(0deg)');
+			action_dropdown_open = false;
+
+			// Check if any items are selected
+			const selected_items = page.main.find('.cw-row-checkbox:checked');
+			if (selected_items.length === 0) {
+				frappe.msgprint({
+					title: 'No Items Selected',
+					message: 'Please select at least one item to perform this action',
+					indicator: 'red'
+				});
+				return;
+			}
+
+			// Handle action
+			if (action === 'next') {
+				const next_stage = page.get_next_stage(current_status);
+				if (next_stage) {
+					page.show_transition_dialog(current_status, next_stage);
+				} else {
+					frappe.msgprint({
+						title: 'End of Workflow',
+						message: 'Already at the final stage',
+						indicator: 'orange'
+					});
+				}
+			} else if (action === 'previous') {
+				const previous_stage = page.get_previous_stage(current_status);
+				if (previous_stage) {
+					page.show_transition_dialog(current_status, previous_stage);
+				} else {
+					frappe.msgprint({
+						title: 'Start of Workflow',
+						message: 'Already at the first stage',
+						indicator: 'orange'
+					});
+				}
+			} else if (action === 'split') {
+				page.show_split_dialog();
+			}
+		});
+	};
+
+	// Initialize the page
+	page.build_ui();
+};

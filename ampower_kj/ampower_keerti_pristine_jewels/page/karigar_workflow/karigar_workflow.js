@@ -441,7 +441,7 @@ frappe.pages["karigar-workflow"].on_page_load = function (wrapper) {
 
 	// Load filter options for autocomplete
 	page.load_filter_options = function () {
-		// Fetch unique customers, karigars, and item names from all stages
+		// Fetch unique customers, karigars, and item groups from all stages
 		frappe.call({
 			method: "ampower_kj.ampower_keerti_pristine_jewels.doctype.order_ledger.order_ledger.get_filter_options",
 			callback: function (r) {
@@ -849,7 +849,11 @@ frappe.pages["karigar-workflow"].on_page_load = function (wrapper) {
 			const karigar = order.karigar || "N/A";
 			const item_code = order.item_code || "N/A";
 			const item_details = page.format_item_display(order);
-			// Strip HTML tags from description and limit length
+			const qty = order.qty || 0;
+			const status = order.order_status || "N/A";
+			const sales_order = order.sales_order || "N/A";
+			const id = order.name || "N/A";
+			const serial_number = start_index + idx + 1;
 			let description = order.description || "N/A";
 			if (description && description !== "N/A") {
 				// Create a temporary div to strip HTML tags
@@ -863,11 +867,6 @@ frappe.pages["karigar-workflow"].on_page_load = function (wrapper) {
 			}
 			const texture = order.texture || "N/A";
 			const item_weight = order.item_weight !== null && order.item_weight !== undefined ? parseFloat(order.item_weight).toFixed(2) : "N/A";
-			const qty = order.qty || 0;
-			const status = order.order_status || "N/A";
-			const sales_order = order.sales_order || "N/A";
-			const id = order.name || "N/A";
-			const serial_number = start_index + idx + 1;
 
 			rows_html += `
 				<tr>

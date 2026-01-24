@@ -5,6 +5,9 @@ app_description = "App for Keerti Pristine Jewels"
 app_email = "buzz.us@ambibuzz.com"
 app_license = "unlicense"
 
+# Installation hooks
+after_install = "ampower_kj.install.after_install"
+
 # Apps
 # ------------------
 

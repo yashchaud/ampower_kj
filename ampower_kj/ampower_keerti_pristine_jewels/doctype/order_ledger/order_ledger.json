@@ -103,7 +103,8 @@
   {
    "fieldname": "order_type",
    "fieldtype": "Select",
-   "label": "Order Type"
+   "label": "Order Type",
+   "options": "\nSales\nMaintenance\nShopping Cart"
   },
   {
    "default": "Unassigned",
@@ -230,7 +231,7 @@
  ],
  "index_web_pages_for_search": 1,
  "links": [],
- "modified": "2025-12-30 23:26:45.242397",
+ "modified": "2025-12-31 15:30:40.245811",
  "modified_by": "Administrator",
  "module": "AmPower Keerti Pristine Jewels",
  "name": "Order Ledger",
@@ -261,6 +262,7 @@
    "write": 1
   }
  ],
+ "read_only": 1,
  "sort_field": "modified",
  "sort_order": "DESC",
  "states": []
