@@ -27,6 +27,9 @@
       <div
         v-if="modelValue"
         class="tw-fixed tw-inset-0 md:tw-inset-4 tw-z-[9999] tw-w-full md:tw-w-auto md:tw-max-w-7xl tw-h-[100dvh] md:tw-h-[700px] tw-mx-auto tw-my-0 md:tw-my-auto tw-bg-white dark:tw-bg-gray-900 md:tw-rounded-xl tw-shadow-none md:tw-shadow-2xl tw-overflow-hidden tw-flex tw-flex-col md:tw-flex-row"
+        role="dialog"
+        aria-modal="true"
+        aria-label="Split item"
       >
         <!-- Desktop Sidebar - Order Queue -->
         <div class="tw-hidden md:tw-flex tw-w-64 tw-bg-gray-50 dark:tw-bg-gray-900 tw-border-r tw-border-gray-200 dark:tw-border-gray-700 tw-flex-col tw-h-full tw-flex-shrink-0">
@@ -208,7 +211,7 @@
                         v-model.number="splitQty"
                         type="number"
                         min="1"
-                        :max="currentOrder ? currentOrder.qty - 1 : 0"
+                        :max="currentOrder ? Math.max(0, Number(currentOrder.qty || 0) - 1) : 0"
                         class="tw-w-full tw-bg-transparent tw-border-none tw-p-0 tw-text-2xl tw-font-display tw-font-bold tw-text-gray-900 dark:tw-text-white placeholder:tw-text-gray-300 focus:tw-ring-0"
                         :class="{'tw-text-red-600': splitQty !== null && !isValidSplit}"
                         placeholder="0"
@@ -333,7 +336,8 @@ const isValidSplit = computed(() => {
   if (splitQty.value === null || !currentOrder.value) {
     return false;
   }
-  return splitQty.value > 0 && splitQty.value < currentOrder.value.qty;
+  const qty = Number(currentOrder.value.qty || 0);
+  return splitQty.value > 0 && splitQty.value < qty;
 });
 
 // Watch for modal open/close to reset state
@@ -355,7 +359,7 @@ function handleSplit() {
     return;
   }
 
-  const remainingQty = currentOrder.value.qty - splitQty.value;
+  const remainingQty = Number(currentOrder.value.qty || 0) - splitQty.value;
 
   props.frappe.confirm(
     `This will split the entry "${currentOrder.value.id}" into two:<br><br>` +

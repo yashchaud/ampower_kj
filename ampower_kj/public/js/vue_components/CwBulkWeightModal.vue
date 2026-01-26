@@ -17,6 +17,9 @@
         <main
           class="tw-relative tw-w-full tw-max-w-[520px] tw-max-h-[90vh] tw-overflow-y-auto tw-bg-white dark:tw-bg-[#1E293B] tw-rounded-2xl sm:tw-rounded-3xl tw-shadow-2xl tw-border tw-border-white/80 dark:tw-border-gray-700/50 tw-transform tw-transition-all"
           @click.stop
+          role="dialog"
+          aria-modal="true"
+          :aria-labelledby="titleId"
         >
             <!-- Close Button -->
             <div class="tw-absolute tw-top-6 tw-right-6 tw-z-20">
@@ -36,7 +39,7 @@
                 <div class="tw-mb-4 sm:tw-mb-6 tw-p-2.5 sm:tw-p-3 tw-rounded-full tw-bg-gray-50 dark:tw-bg-gray-800/80 tw-text-gray-700 dark:tw-text-gray-300 tw-ring-1 tw-ring-gray-100 dark:tw-ring-gray-700">
                   <span class="material-symbols-outlined tw-text-2xl sm:tw-text-3xl">scale</span>
                 </div>
-                <h2 class="tw-font-display tw-text-2xl sm:tw-text-3xl md:tw-text-4xl tw-font-semibold tw-text-gray-900 dark:tw-text-white tw-tracking-tight tw-px-4">
+                <h2 :id="titleId" class="tw-font-display tw-text-2xl sm:tw-text-3xl md:tw-text-4xl tw-font-semibold tw-text-gray-900 dark:tw-text-white tw-tracking-tight tw-px-4">
                   Enter Total Weight
                 </h2>
                 <p class="tw-mt-2 tw-text-xs sm:tw-text-sm tw-text-gray-500 dark:tw-text-gray-400 tw-font-medium tw-tracking-wide tw-uppercase">
@@ -120,6 +123,8 @@ const props = defineProps({
 });
 
 const emit = defineEmits(['update:modelValue', 'apply']);
+
+const titleId = `cw-bulk-weight-title-${Math.random().toString(36).slice(2)}`;
 
 // State
 const totalWeight = ref('');

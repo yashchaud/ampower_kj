@@ -47,7 +47,9 @@ app_include_css = [
 # webform_include_css = {"doctype": "public/css/doctype.css"}
 
 # include js in page
-# page_js = {"page" : "public/js/file.js"}
+page_js = {
+	"custom-workflow": "ampower_keerti_pristine_jewels/page/custom_workflow/custom_workflow.js"
+}
 
 # include js in doctype views
 doctype_js = {

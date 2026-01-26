@@ -4,13 +4,13 @@
     <div
       v-if="modelValue"
       aria-hidden="true"
-      class="tw-fixed tw-inset-0 tw-bg-gray-900/50 dark:tw-bg-black/70 tw-backdrop-blur-sm tw-z-[9998] tw-transition-opacity tw-hidden xl:tw-block"
+      class="tw-fixed tw-inset-0 tw-bg-gray-900/50 dark:tw-bg-black/70 tw-backdrop-blur-sm tw-z-[9998] tw-transition-opacity"
     ></div>
 
     <!-- Modal Container -->
     <div
       v-if="modelValue"
-      class="tw-fixed tw-inset-0 tw-z-[9999] tw-flex tw-items-center tw-justify-center tw-p-0 xl:tw-p-4"
+      class="tw-fixed tw-inset-0 tw-z-[9999] tw-flex tw-items-center tw-justify-center tw-p-0 sm:tw-p-4 xl:tw-p-4"
     >
       <Transition
         enter-active-class="tw-transition-all tw-duration-300"
@@ -23,14 +23,17 @@
         <div
           v-if="modelValue"
           class="tw-relative tw-z-[9999] tw-w-full tw-h-[100dvh]
-                 xl:tw-max-w-7xl xl:tw-h-[700px]
+                 sm:tw-h-[calc(100dvh-2rem)] sm:tw-max-w-3xl lg:tw-max-w-5xl xl:tw-max-w-7xl xl:tw-h-[700px]
                  tw-bg-white dark:tw-bg-[#1F2937]
-                 xl:tw-rounded-xl
-                 tw-shadow-none xl:tw-shadow-2xl
+                 sm:tw-rounded-2xl xl:tw-rounded-xl
+                 tw-shadow-none sm:tw-shadow-2xl xl:tw-shadow-2xl
                  tw-overflow-hidden
                  tw-flex tw-flex-col
                  xl:tw-flex-row
                  tw-transition-colors tw-duration-300"
+          role="dialog"
+          aria-modal="true"
+          aria-label="Split order"
         >
 
           <!-- Desktop Order Queue Sidebar (Only for xl and above) -->
@@ -94,7 +97,7 @@
                 </div>
               </div>
               <button @click="closeModal" class="tw-text-gray-400 hover:tw-text-gray-600 dark:hover:tw-text-gray-300 tw-transition-colors">
-                <span class="material-symbols-outlined">more_vert</span>
+                <span class="material-symbols-outlined">close</span>
               </button>
             </div>
 
@@ -132,7 +135,7 @@
           </div>
 
           <!-- Main Content Wrapper -->
-          <div class="tw-flex-1 tw-flex tw-flex-col xl:tw-flex-row tw-h-full tw-overflow-y-auto xl:tw-overflow-hidden tw-relative custom-scrollbar scroll-smooth">
+          <div class="tw-flex-1 tw-flex tw-flex-col xl:tw-flex-row tw-h-full tw-min-h-0 tw-overflow-hidden tw-relative">
 
             <!-- Current Order Info Panel -->
             <div class="tw-w-full xl:tw-w-80 tw-bg-[#F9FAFB] dark:tw-bg-[#161e2e] xl:tw-border-r tw-border-gray-200 dark:tw-border-gray-700 tw-flex tw-flex-col xl:tw-h-full tw-relative tw-overflow-hidden tw-flex-shrink-0">
@@ -156,26 +159,26 @@
                   </div>
 
                   <!-- Weight Display - Horizontal on mobile/tablet, vertical on xl+ -->
-                  <div class="tw-flex-1 tw-flex tw-flex-row xl:tw-flex-col tw-justify-between xl:tw-justify-center tw-items-center tw-text-center tw-space-x-6 xl:tw-space-x-0 xl:tw-space-y-6">
+                  <div class="tw-flex-1 tw-flex tw-flex-col sm:tw-flex-row xl:tw-flex-col tw-justify-between xl:tw-justify-center tw-items-center tw-text-center tw-space-y-5 sm:tw-space-y-0 sm:tw-space-x-6 xl:tw-space-x-0 xl:tw-space-y-6">
                     <div class="tw-relative tw-group tw-flex tw-flex-col tw-items-center">
                       <div class="tw-absolute tw-inset-0 tw-bg-[#0066b3]/5 tw-blur-3xl tw-rounded-full tw-transform tw-scale-150 tw-opacity-100 tw-transition-opacity tw-duration-700"></div>
-                      <span class="material-symbols-outlined tw-text-4xl xl:tw-text-5xl tw-text-gray-300 dark:tw-text-gray-600 tw-mb-2 xl:tw-mb-4 tw-block">scale</span>
+                      <span class="material-symbols-outlined tw-text-3xl sm:tw-text-4xl xl:tw-text-5xl tw-text-gray-300 dark:tw-text-gray-600 tw-mb-2 xl:tw-mb-4 tw-block">scale</span>
                       <div class="tw-text-left xl:tw-text-center">
-                        <h3 class="tw-text-3xl xl:tw-text-5xl tw-font-display tw-font-bold tw-text-gray-900 dark:tw-text-white tw-tracking-tight">
-                          {{ formatWeight(getOrderWeight(currentOrder)) }}<span class="tw-text-xl xl:tw-text-2xl tw-text-gray-400 dark:tw-text-gray-500">.g</span>
+                        <h3 class="tw-text-2xl sm:tw-text-3xl xl:tw-text-5xl tw-font-display tw-font-bold tw-text-gray-900 dark:tw-text-white tw-tracking-tight">
+                          {{ formatWeight(getOrderWeight(currentOrder)) }}<span class="tw-text-lg sm:tw-text-xl xl:tw-text-2xl tw-text-gray-400 dark:tw-text-gray-500">.g</span>
                         </h3>
                         <p class="tw-text-[10px] xl:tw-text-xs tw-text-gray-500 dark:tw-text-gray-400 tw-mt-1 tw-font-medium tw-uppercase tw-tracking-wide">Source Weight</p>
                       </div>
                     </div>
 
                     <!-- Order Details Grid -->
-                    <div class="tw-grid tw-grid-cols-1 xl:tw-grid-cols-2 tw-gap-2 xl:tw-gap-4 tw-w-32 xl:tw-w-full xl:tw-pt-8 xl:tw-border-t tw-border-gray-200 dark:tw-border-gray-700">
+                    <div class="tw-grid tw-grid-cols-2 xl:tw-grid-cols-2 tw-gap-2 xl:tw-gap-4 tw-w-full sm:tw-w-64 xl:tw-w-full xl:tw-pt-8 xl:tw-border-t tw-border-gray-200 dark:tw-border-gray-700">
                       <div class="tw-text-center tw-p-2 xl:tw-p-3 tw-rounded-lg tw-bg-gray-50 xl:tw-bg-white dark:tw-bg-gray-900 xl:dark:tw-bg-gray-800 tw-shadow-sm tw-border tw-border-gray-100 dark:tw-border-gray-700">
-                        <span class="tw-block tw-text-sm xl:tw-text-lg tw-font-bold tw-text-gray-900 dark:tw-text-white tw-font-display tw-truncate">{{ currentOrder.item_code || 'N/A' }}</span>
+                        <span class="tw-block tw-text-xs sm:tw-text-sm xl:tw-text-lg tw-font-bold tw-text-gray-900 dark:tw-text-white tw-font-display tw-truncate">{{ currentOrder.item_code || 'N/A' }}</span>
                         <span class="tw-text-[10px] xl:tw-text-xs tw-text-gray-500 dark:tw-text-gray-400 tw-uppercase tw-tracking-wider">Item Code</span>
                       </div>
                       <div class="tw-text-center tw-p-2 xl:tw-p-3 tw-rounded-lg tw-bg-gray-50 xl:tw-bg-white dark:tw-bg-gray-900 xl:dark:tw-bg-gray-800 tw-shadow-sm tw-border tw-border-gray-100 dark:tw-border-gray-700">
-                        <span class="tw-block tw-text-sm xl:tw-text-lg tw-font-bold tw-text-gray-900 dark:tw-text-white tw-font-display tw-truncate">{{ currentOrder.texture || 'N/A' }}</span>
+                        <span class="tw-block tw-text-xs sm:tw-text-sm xl:tw-text-lg tw-font-bold tw-text-gray-900 dark:tw-text-white tw-font-display tw-truncate">{{ currentOrder.texture || 'N/A' }}</span>
                         <span class="tw-text-[10px] xl:tw-text-xs tw-text-gray-500 dark:tw-text-gray-400 tw-uppercase tw-tracking-wider">Texture</span>
                       </div>
                     </div>
@@ -191,13 +194,13 @@
             </div>
 
             <!-- Split Builder Panel -->
-            <div class="tw-flex-1 tw-flex tw-flex-col tw-relative xl:tw-h-full tw-bg-white dark:tw-bg-[#1F2937] tw-w-full">
+            <div class="tw-flex-1 tw-flex tw-flex-col tw-relative xl:tw-h-full tw-bg-white dark:tw-bg-[#1F2937] tw-w-full tw-min-h-0">
               <!-- Close button (desktop only) -->
               <button class="tw-absolute tw-top-6 tw-right-6 tw-text-gray-400 hover:tw-text-gray-600 dark:hover:tw-text-gray-300 tw-transition-colors tw-z-30 tw-p-1 tw-rounded-full hover:tw-bg-gray-100 dark:hover:tw-bg-gray-800 tw-hidden xl:tw-block" @click="closeModal">
                 <span class="material-symbols-outlined tw-text-2xl">close</span>
               </button>
 
-              <div class="tw-px-4 tw-py-4 xl:tw-px-12 xl:tw-pt-10 xl:tw-pb-4">
+              <div class="tw-px-4 tw-py-4 sm:tw-px-6 xl:tw-px-12 xl:tw-pt-10 xl:tw-pb-4">
                 <h1 class="tw-text-3xl tw-font-display tw-font-bold tw-text-gray-900 dark:tw-text-white tw-mb-6 tw-hidden xl:tw-block">Split Order {{ currentOrder.id }}</h1>
                 <div class="tw-flex tw-w-full xl:tw-inline-flex tw-bg-gray-100 dark:tw-bg-gray-800 tw-p-1 tw-rounded-lg">
                   <button
@@ -277,9 +280,9 @@
                 </div>
               </Transition>
 
-              <!-- Split Parts List - overflow-visible on mobile/tablet, overflow-y-auto on xl+ -->
-              <div class="tw-flex-1 tw-overflow-visible xl:tw-overflow-y-auto custom-scrollbar tw-px-4 xl:tw-px-12 tw-py-2 xl:tw-py-6 tw-space-y-6 xl:tw-space-y-8 tw-pb-24 xl:tw-pb-6">
-                <div v-for="(part, index) in splitParts" :key="part.id" class="tw-group tw-flex tw-flex-col sm:tw-flex-row tw-items-start sm:tw-items-end tw-gap-2 sm:tw-gap-6 tw-w-full tw-relative tw-bg-[#F9FAFB] dark:tw-bg-[#161e2e]/50 sm:tw-bg-transparent tw-p-4 sm:tw-p-0 tw-rounded-xl tw-border tw-border-gray-100 dark:tw-border-gray-800 sm:tw-border-0">
+              <!-- Split Parts List -->
+              <div class="tw-flex-1 tw-min-h-0 tw-overflow-y-auto custom-scrollbar tw-px-4 sm:tw-px-6 xl:tw-px-12 tw-py-4 xl:tw-py-6 tw-space-y-4 xl:tw-space-y-6 tw-pb-[calc(7.5rem+env(safe-area-inset-bottom))] xl:tw-pb-6">
+                <div v-for="(part, index) in splitParts" :key="part.id" class="tw-group tw-flex tw-flex-col sm:tw-flex-row tw-items-start sm:tw-items-end tw-gap-3 sm:tw-gap-6 tw-w-full tw-relative tw-bg-[#F9FAFB] dark:tw-bg-[#161e2e]/50 sm:tw-bg-transparent tw-p-4 sm:tw-p-0 tw-rounded-xl tw-border tw-border-gray-100 dark:tw-border-gray-800 sm:tw-border-0">
                   <div class="tw-hidden sm:tw-flex tw-items-center tw-justify-center tw-w-8 tw-h-12 tw-text-xl tw-font-bold tw-text-gray-300 dark:tw-text-gray-600 tw-font-display tw-select-none">{{ getPartLabel(index) }}</div>
                   <div class="sm:tw-hidden tw-text-xs tw-font-bold tw-text-gray-400 dark:tw-text-gray-500 tw-mb-1">PART {{ getPartLabel(index) }}</div>
 
@@ -291,7 +294,7 @@
                           v-model="part.qty"
                           :disabled="splitMode === 'equal'"
                           :max="getOrderQty(currentOrder)"
-                          class="tw-w-full tw-bg-transparent tw-border-none tw-p-0 tw-text-2xl tw-font-display tw-font-bold tw-text-gray-900 dark:tw-text-white placeholder:tw-text-gray-300 focus:tw-ring-0"
+                          class="tw-w-full tw-bg-transparent tw-border-none tw-p-0 tw-text-xl sm:tw-text-2xl tw-font-display tw-font-bold tw-text-gray-900 dark:tw-text-white placeholder:tw-text-gray-300 focus:tw-ring-0"
                           type="text"
                           inputmode="decimal"
                           placeholder="0"
@@ -304,7 +307,7 @@
                   <!-- Remove button - positioned for touch on mobile -->
                   <button
                     v-if="splitParts.length > 2"
-                    class="tw-absolute tw-right-2 tw-top-2 sm:tw--right-8 sm:tw-top-auto sm:tw-bottom-3 tw-text-gray-300 hover:tw-text-red-500 tw-transition-colors tw-p-1 tw-hidden lg:tw-block"
+                    class="tw-absolute tw-right-2 tw-top-2 sm:tw-static sm:tw-ml-2 sm:tw-self-end tw-inline-flex tw-items-center tw-justify-center tw-w-10 tw-h-10 tw-rounded-full tw-bg-white/70 dark:tw-bg-gray-900/50 tw-backdrop-blur tw-border tw-border-gray-200/70 dark:tw-border-gray-700/70 tw-text-gray-400 hover:tw-text-red-500 hover:tw-border-red-200 dark:hover:tw-border-red-700 tw-transition-colors"
                     @click="removePart(index)"
                   >
                     <span class="material-symbols-outlined tw-text-xl">close</span>
@@ -320,8 +323,8 @@
               </div>
 
               <!-- Bottom Action Bar -->
-              <div class="tw-sticky tw-bottom-0 tw-z-30 tw-px-4 xl:tw-px-12 tw-py-4 xl:tw-py-6 tw-border-t tw-border-gray-200 dark:tw-border-gray-800 tw-bg-white dark:tw-bg-[#1F2937] xl:tw-rounded-br-xl tw-shadow-[0_-4px_6px_-1px_rgba(0,0,0,0.05)] xl:tw-shadow-none">
-                <div class="tw-flex tw-flex-row xl:tw-flex-row tw-justify-between tw-items-center tw-gap-4 xl:tw-gap-6">
+              <div class="tw-sticky tw-bottom-0 tw-z-30 tw-px-4 sm:tw-px-6 xl:tw-px-12 tw-pt-4 tw-pb-[calc(1rem+env(safe-area-inset-bottom))] xl:tw-py-6 tw-border-t tw-border-gray-200 dark:tw-border-gray-800 tw-bg-white dark:tw-bg-[#1F2937] xl:tw-rounded-br-xl tw-shadow-[0_-4px_6px_-1px_rgba(0,0,0,0.05)] xl:tw-shadow-none">
+                <div class="tw-flex tw-flex-col sm:tw-flex-row sm:tw-justify-between sm:tw-items-center tw-gap-4 xl:tw-gap-6">
                   <div class="tw-text-sm tw-flex tw-flex-col xl:tw-flex-row xl:tw-items-center tw-gap-1 xl:tw-gap-3">
                     <div class="tw-flex tw-items-center tw-gap-2">
                       <span class="tw-text-gray-500 dark:tw-text-gray-400 tw-font-medium">Remaining:</span>
@@ -337,7 +340,7 @@
                       {{ remainingQty === 0 ? 'Balanced' : 'Unbalanced' }}
                     </span>
                   </div>
-                  <div class="tw-flex tw-items-center tw-gap-3 xl:tw-gap-4 tw-w-auto sm:tw-justify-end">
+                  <div class="tw-flex tw-items-center tw-gap-3 xl:tw-gap-4 tw-w-full sm:tw-w-auto sm:tw-justify-end">
                     <button
                       class="tw-hidden xl:tw-block tw-text-sm tw-font-medium tw-text-gray-500 dark:tw-text-gray-400 hover:tw-text-gray-900 dark:hover:tw-text-white tw-transition-colors tw-cursor-pointer tw-px-3 tw-py-2 tw-rounded hover:tw-bg-gray-100 dark:hover:tw-bg-gray-800"
                       @click="skipOrder"
@@ -346,7 +349,7 @@
                     </button>
                     <button
                       :disabled="!isValidSplit"
-                      class="tw-bg-[#0066b3] hover:tw-bg-[#005291] tw-text-white tw-text-sm tw-font-semibold tw-py-3 tw-px-6 xl:tw-px-8 tw-rounded-lg tw-shadow-lg tw-shadow-blue-500/20 tw-transition-all tw-transform active:tw-scale-95 tw-flex tw-items-center tw-gap-2 tw-whitespace-nowrap disabled:tw-opacity-50 disabled:tw-cursor-not-allowed"
+                      class="tw-w-full sm:tw-w-auto tw-justify-center tw-bg-[#0066b3] hover:tw-bg-[#005291] tw-text-white tw-text-sm tw-font-semibold tw-py-3 tw-px-6 xl:tw-px-8 tw-rounded-lg tw-shadow-lg tw-shadow-blue-500/20 tw-transition-all tw-transform active:tw-scale-95 tw-flex tw-items-center tw-gap-2 tw-whitespace-nowrap disabled:tw-opacity-50 disabled:tw-cursor-not-allowed"
                       @click="processSplit"
                     >
                       {{ currentOrderIndex < selectedOrders.length - 1 ? 'Next Order' : 'Complete' }}

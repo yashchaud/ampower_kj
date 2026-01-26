@@ -10,6 +10,9 @@
         @input="handleInput"
         @focus="handleFocus"
         @keydown="handleKeydown"
+        aria-autocomplete="list"
+        :aria-expanded="showDropdown ? 'true' : 'false'"
+        :aria-controls="dropdownId"
       />
 
       <!-- Clear Button -->
@@ -18,6 +21,7 @@
         class="tw-absolute tw-right-2 tw-top-1/2 -tw-translate-y-1/2 tw-text-slate-400 hover:tw-text-slate-600 tw-transition-colors"
         @click="clearInput"
         type="button"
+        aria-label="Clear input"
       >
         <span class="material-symbols-outlined tw-text-lg">close</span>
       </button>
@@ -27,14 +31,19 @@
     <Teleport to="body">
       <div
         v-if="showDropdown && filteredOptions.length > 0"
+        ref="dropdownEl"
         class="tw-fixed tw-z-[9999] tw-bg-white tw-border tw-border-slate-200 tw-rounded-lg tw-shadow-dropdown tw-py-1 tw-max-h-64 tw-overflow-y-auto"
         :style="dropdownStyle"
+        role="listbox"
+        :id="dropdownId"
       >
         <div
           v-for="(option, index) in visibleOptions"
           :key="option"
           class="tw-px-3 tw-py-2 tw-text-sm tw-cursor-pointer hover:tw-bg-slate-50 tw-transition-colors"
           :class="{ 'tw-bg-slate-100': index === activeIndex }"
+          role="option"
+          :aria-selected="index === activeIndex"
           @click="selectOption(option)"
           @mouseenter="activeIndex = index"
         >
@@ -75,10 +84,12 @@ const emit = defineEmits(['update:modelValue', 'search']);
 
 // State
 const filterRef = ref(null);
+const dropdownEl = ref(null);
 const inputValue = ref(props.modelValue || '');
 const showDropdown = ref(false);
 const activeIndex = ref(-1);
 const dropdownStyle = ref({});
+const dropdownId = `cw-filter-dropdown-${Math.random().toString(36).slice(2)}`;
 let debounceTimeout = null;
 
 // Watch for external changes to modelValue
@@ -216,9 +227,8 @@ function updateDropdownPosition() {
 
 // Scroll to active option in dropdown
 function scrollToActiveOption() {
-  // Wait for next tick to ensure DOM is updated
   setTimeout(() => {
-    const dropdown = document.querySelector('[style*="z-index"][style*="9999"]');
+    const dropdown = dropdownEl.value;
     if (!dropdown) return;
 
     const activeOption = dropdown.children[activeIndex.value];
@@ -238,8 +248,7 @@ function scrollToActiveOption() {
 // Click outside to close
 function handleClickOutside(e) {
   if (filterRef.value && !filterRef.value.contains(e.target)) {
-    // Check if click is on dropdown
-    const dropdown = document.querySelector('[style*="z-index"][style*="9999"]');
+    const dropdown = dropdownEl.value;
     if (!dropdown || !dropdown.contains(e.target)) {
       showDropdown.value = false;
       activeIndex.value = -1;

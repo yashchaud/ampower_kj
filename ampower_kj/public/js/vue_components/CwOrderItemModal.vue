@@ -25,11 +25,14 @@
           <div
             v-if="modelValue"
             class="tw-w-full tw-max-w-5xl tw-bg-white tw-rounded-2xl tw-shadow-2xl tw-flex tw-flex-col tw-max-h-[90vh] tw-overflow-hidden tw-ring-1 tw-ring-black/5"
+            role="dialog"
+            aria-modal="true"
+            :aria-labelledby="titleId"
           >
             <!-- Header -->
             <div class="tw-flex tw-items-center tw-justify-between tw-px-6 tw-py-4 tw-border-b tw-border-gray-100 tw-bg-white tw-sticky tw-top-0 tw-z-20">
               <div>
-                <h1 class="tw-text-xl tw-font-bold tw-text-[#111418] tw-tracking-tight">Order Item Details</h1>
+                <h1 :id="titleId" class="tw-text-xl tw-font-bold tw-text-[#111418] tw-tracking-tight">Order Item Details</h1>
                 <p class="tw-text-sm tw-text-gray-500 tw-mt-0.5">
                   Order #{{ orderData.sales_order }} <span class="tw-mx-1">•</span> <span class="tw-font-medium tw-text-gray-700">{{ orderData.item_details }}</span>
                 </p>
@@ -200,7 +203,7 @@
                       </div>
                       <div class="tw-bg-gray-50 tw-rounded-xl tw-p-3.5 tw-border tw-border-gray-100 hover:tw-border-gray-200 tw-transition-colors">
                         <label class="tw-text-xs tw-font-semibold tw-text-gray-500 tw-uppercase tw-tracking-wide tw-block tw-mb-1">Quantity</label>
-                        <span class="tw-text-[#111418] tw-font-semibold tw-text-sm">{{ orderData.qty || '22 K' }}</span>
+                        <span class="tw-text-[#111418] tw-font-semibold tw-text-sm">{{ orderData.qty ?? 'N/A' }}</span>
                       </div>
                       <div class="tw-bg-gray-50 tw-rounded-xl tw-p-3.5 tw-border tw-border-gray-100 hover:tw-border-gray-200 tw-transition-colors">
                         <label class="tw-text-xs tw-font-semibold tw-text-gray-500 tw-uppercase tw-tracking-wide tw-block tw-mb-1">Texture</label>
@@ -299,6 +302,8 @@ const props = defineProps({
 
 const emit = defineEmits(['update:modelValue', 'save']);
 
+const titleId = `cw-order-item-title-${Math.random().toString(36).slice(2)}`;
+
 // Image gallery state
 const currentImageIndex = ref(0);
 const placeholder = '/assets/frappe/images/ui-states/list-empty-state.svg';
@@ -383,14 +388,24 @@ const formatWeight = (weight) => {
 
 
 const copyToClipboard = (text) => {
-  navigator.clipboard.writeText(text).then(() => {
-    if (props.frappe) {
-      props.frappe.show_alert({
-        message: 'Copied to clipboard',
-        indicator: 'green'
-      });
-    }
-  });
+  navigator.clipboard.writeText(text)
+    .then(() => {
+      if (props.frappe) {
+        props.frappe.show_alert({
+          message: 'Copied to clipboard',
+          indicator: 'green'
+        });
+      }
+    })
+    .catch(() => {
+      if (props.frappe?.msgprint) {
+        props.frappe.msgprint({
+          title: 'Copy Failed',
+          message: 'Could not copy to clipboard. Please copy manually.',
+          indicator: 'red'
+        });
+      }
+    });
 };
 
 const saveChanges = () => {

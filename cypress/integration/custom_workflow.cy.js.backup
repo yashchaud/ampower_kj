@@ -1,0 +1,295 @@
+context('Custom Workflow Vue App', () => {
+    const testSuffix = Math.random().toString(36).slice(2, 7);
+    const customerName = `Test Customer ${testSuffix}`;
+    const karigarName = `Test Karigar ${testSuffix}`;
+    const itemName = `Test Item ${testSuffix}`;
+    let salesOrderName;
+    let orderLedgerName;
+
+    function getToday() {
+        return new Date().toISOString().split('T')[0];
+    }
+    function addDays(days) {
+        const date = new Date();
+        date.setDate(date.getDate() + days);
+        return date.toISOString().split('T')[0];
+    }
+
+    before(() => {
+        cy.login();
+        cy.visit('/app');
+        cy.window().its('frappe').should('exist');
+
+        // 1. Create Customer
+        cy.create_records({
+            doctype: 'Customer',
+            customer_name: customerName,
+            customer_type: 'Individual',
+            customer_group: 'All Customer Groups',
+            territory: 'All Territories'
+        });
+
+        // 2. Create Item
+        cy.create_records({
+            doctype: 'Item',
+            item_code: itemName,
+            item_group: 'All Item Groups',
+            stock_uom: 'Nos',
+            is_sales_item: 1
+        });
+
+        // 3. Create Karigar (Supplier)
+        cy.create_records({
+            doctype: 'Supplier',
+            supplier_name: karigarName,
+            supplier_group: 'All Supplier Groups',
+            supplier_type: 'Individual'
+        });
+
+        // 4. Create Sales Order
+        cy.insert_doc('Sales Order', {
+            customer: customerName,
+            delivery_date: addDays(7),
+            items: [
+                {
+                    item_code: itemName,
+                    qty: 10,
+                    rate: 1000,
+                    delivery_date: addDays(7)
+                }
+            ]
+        }, true).then(doc => {
+            salesOrderName = doc.name;
+
+            // 5. Create Order Ledger
+            cy.insert_doc('Order Ledger', {
+                sales_order: salesOrderName,
+                item: itemName,
+                order_date: getToday(),
+                qty: 5,
+                order_status: 'Incoming', // Start at Incoming to test transition
+                soi_karigar: karigarName
+            }, true).then(olDoc => {
+                orderLedgerName = olDoc.name;
+            });
+        });
+    });
+
+    // Helper function to navigate to custom workflow page
+    function navigateToCustomWorkflow() {
+        cy.login();
+        cy.visit('/app/custom-workflow');
+        cy.url().should('match', /\/(app|desk)\/custom-workflow/, { timeout: 10000 });
+        cy.window().its('frappe').should('exist');
+    }
+
+    // Helper function to wait for Vue app to load
+    function waitForVueApp() {
+        // Wait for page content
+        cy.get('.page-content', { timeout: 10000 }).should('exist');
+
+        // Wait for Vue app tabs to render
+        cy.get('.cw-tabs-list', { timeout: 30000 }).should('be.visible');
+        cy.get('.cw-tabs-list button').should('have.length.at.least', 1);
+    }
+
+    beforeEach(() => {
+        // Basic navigation - keep this minimal
+        navigateToCustomWorkflow();
+    });
+
+    it('should load the page and render tabs correctly', () => {
+        waitForVueApp();
+
+        const tabs = ['Unassigned', 'Assigned', 'Incoming', 'Internal QA', 'Pending Delivery', 'Delivered'];
+        tabs.forEach(tab => {
+            cy.get('.cw-tabs-list button').contains(tab).should('exist');
+        });
+    });
+
+    it('should filter orders by Customer and Karigar', () => {
+        // Open Filter
+        cy.get('.cw-filter-section').within(() => {
+            // Type in Customer
+            cy.get('input[placeholder="Customer"]').type(customerName);
+            // Select from dropdown (assuming dropdown appears)
+            cy.wait(500); // Wait for debounce
+            // Since dropdown is teleported, we might need to look outside 'within'
+        });
+
+        // Check teleported dropdown for Customer
+        cy.get('[role="listbox"]').contains(customerName).click();
+
+        // Type in Karigar
+        cy.get('.cw-filter-section input[placeholder="Karigar"]').type(karigarName);
+        cy.wait(500);
+        cy.get('[role="listbox"]').contains(karigarName).click();
+
+        // Verify rows
+        cy.get('tbody tr').should('have.length.at.least', 1);
+        cy.get('tbody tr').contains(customerName).should('exist');
+    });
+
+    it('should handle Single Item Workflow: Incoming -> Internal QA', () => {
+        // Go to Incoming tab
+        cy.get('.cw-tabs-list button').contains('Incoming').click();
+        
+        // Find our test item
+        cy.get('tbody tr').contains(orderLedgerName).parents('tr').within(() => {
+             // Verify status badge
+             cy.get('.cw-badge').contains('Incoming').should('exist');
+             // Click row to open modal (assuming row click opens modal)
+             cy.get('td').first().click();
+        });
+
+        // Modal should be open
+        cy.get('[role="dialog"][aria-labelledby^="cw-order-item-title"]').should('be.visible');
+
+        // Click Next Stage (Incoming -> Internal QA)
+        // This transition usually requires weight
+        cy.get('button').contains('Next Stage').click();
+
+        // Verify Error for missing weight (if we didn't enter it)
+        // The fix we made should check for weight validation if it's required for this transition
+        
+        // Enter Weight
+        cy.get('input[type="number"]').first().clear().type('15.5');
+        
+        // Add Remarks
+        cy.get('textarea').type('Cypress Test Remarks');
+
+        // Save
+        cy.get('button').contains('Save Changes').click();
+
+        // Verify Modal Closes
+        cy.get('[role="dialog"]').should('not.exist');
+
+        // Verify Status Updated in Table
+        // It should move to Internal QA tab, so it might disappear from Incoming
+        cy.get('.cw-tabs-list button').contains('Internal QA').click();
+        cy.get('tbody tr').contains(orderLedgerName).should('exist');
+    });
+
+    it('should handle Bulk Actions', () => {
+        // Create another item for bulk test
+        cy.insert_doc('Order Ledger', {
+            sales_order: salesOrderName,
+            item: itemName,
+            order_date: getToday(),
+            qty: 2,
+            order_status: 'Incoming',
+            soi_karigar: karigarName
+        }).then(doc2 => {
+            const name2 = doc2.name;
+
+            cy.reload();
+            cy.get('.cw-tabs-list button').contains('Incoming').click();
+
+            // Select multiple rows
+            // We need to target the checkbox. Assuming first column has checkbox
+            cy.get('tbody tr').contains(orderLedgerName).parents('tr').find('input[type="checkbox"]').check();
+            cy.get('tbody tr').contains(name2).parents('tr').find('input[type="checkbox"]').check();
+
+            // Click Next Stage (Bulk)
+            cy.get('button').contains('Next Stage').click();
+
+            // Bulk Weight Modal should appear
+            cy.get('[role="dialog"][aria-labelledby^="cw-bulk-weight-title"]').should('be.visible');
+
+            // Enter total weight
+            cy.get('input[type="number"]').type('50');
+
+            // Apply
+            cy.get('button').contains('Apply').click();
+
+            // Verify success message or modal close
+            cy.get('[role="dialog"]').should('not.exist');
+            
+            // Verify items moved
+            cy.get('.cw-tabs-list button').contains('Internal QA').click();
+            cy.get('tbody tr').contains(orderLedgerName).should('exist');
+            cy.get('tbody tr').contains(name2).should('exist');
+        });
+    });
+
+    it('should validate Split Item logic', () => {
+        // Go to Internal QA (where our item is now)
+        cy.get('.cw-tabs-list button').contains('Internal QA').click();
+
+        // Find item
+        cy.get('tbody tr').contains(orderLedgerName).parents('tr').click();
+
+        // Click Split in Modal
+        cy.get('button').contains('Split').click();
+
+        // Split Modal
+        cy.get('[role="dialog"][aria-label="Split item"]').should('be.visible');
+
+        // Try invalid split (more than qty)
+        // Original qty was 5
+        cy.get('input[type="number"]').clear().type('10');
+        
+        // Confirm button should be disabled or show error
+        // Or if we click confirm, it should block
+        cy.get('button').contains('Confirm Split').click();
+        // Depending on implementation, it might just not close
+        
+        // Try valid split
+        cy.get('input[type="number"]').clear().type('2');
+        cy.get('button').contains('Confirm Split').click();
+
+        // Verify split happened
+        // Original item qty should reduce
+        // New item should appear
+        
+        // Reload to check fresh data
+        cy.reload();
+        cy.get('.cw-tabs-list button').contains('Internal QA').click();
+        
+        // Check original item qty
+        cy.get('tbody tr').contains(orderLedgerName).parents('tr').find('td').contains('3').should('exist'); // 5 - 2 = 3
+    });
+
+    it('should handle Status Menu interactions', () => {
+         cy.get('.cw-tabs-list button').contains('Internal QA').click();
+         
+         // Click status badge
+         cy.get('tbody tr').contains(orderLedgerName).parents('tr').find('.cw-badge').click();
+         
+         // Menu should appear
+         cy.get('[role="menu"]').should('be.visible');
+         
+         // Select "Pending Delivery"
+         cy.get('[role="menuitem"]').contains('Pending Delivery').click();
+         
+         // Verify move
+         cy.get('.cw-tabs-list button').contains('Pending Delivery').click();
+         cy.get('tbody tr').contains(orderLedgerName).should('exist');
+    });
+
+    it('should handle Clipboard Copy', () => {
+        // Mock clipboard
+        cy.window().then((win) => {
+            if (!win.navigator.clipboard) {
+                win.navigator.clipboard = {};
+            }
+            if (!win.navigator.clipboard.writeText) {
+                win.navigator.clipboard.writeText = cy.stub().resolves();
+            } else {
+                cy.stub(win.navigator.clipboard, 'writeText').resolves();
+            }
+        });
+
+        cy.get('.cw-tabs-list button').contains('Pending Delivery').click();
+        
+        // Open modal
+        cy.get('tbody tr').contains(orderLedgerName).click();
+
+        // Click copy ID (assuming icon or text is clickable)
+        // Need to find the copy button. Usually near ID.
+        cy.get('button[title="Copy ID"]').click({force: true}); // Force if tooltip covers it
+
+        // Verify toast/alert
+        cy.get('.alert-success').should('contain', 'Copied');
+    });
+});

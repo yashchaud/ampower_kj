@@ -6,7 +6,12 @@
   "scripts": {
     "build": "npm run build:tailwind",
     "build:tailwind": "npx tailwindcss -i ./ampower_kj/public/css/tailwind.src.css -o ./ampower_kj/public/css/tailwind.bundle.css --minify",
-    "watch:tailwind": "npx tailwindcss -i ./ampower_kj/public/css/tailwind.src.css -o ./ampower_kj/public/css/tailwind.bundle.css --watch"
+    "watch:tailwind": "npx tailwindcss -i ./ampower_kj/public/css/tailwind.src.css -o ./ampower_kj/public/css/tailwind.bundle.css --watch",
+    "cypress:open": "../frappe/node_modules/.bin/cypress open",
+    "cypress:run": "../frappe/node_modules/.bin/cypress run",
+    "test:component": "../frappe/node_modules/.bin/cypress run --component --config-file cypress.component.config.js",
+    "test:component:open": "../frappe/node_modules/.bin/cypress open --component --config-file cypress.component.config.js",
+    "test:component:watch": "../frappe/node_modules/.bin/cypress open --component --config-file cypress.component.config.js --watch"
   },
   "dependencies": {
     "tailwindcss": "^3.4.0"

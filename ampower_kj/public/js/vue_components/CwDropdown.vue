@@ -1,7 +1,16 @@
 <template>
   <div class="tw-relative tw-inline-block" ref="dropdownRef">
     <!-- Trigger button -->
-    <div @click="toggle" ref="triggerRef">
+    <div
+      @click="toggle"
+      @keydown.enter.prevent="toggle"
+      @keydown.space.prevent="toggle"
+      ref="triggerRef"
+      role="button"
+      tabindex="0"
+      aria-haspopup="menu"
+      :aria-expanded="isOpen ? 'true' : 'false'"
+    >
       <slot name="trigger">
         <CwButton
           :variant="buttonVariant"
@@ -81,7 +90,7 @@
 </template>
 
 <script setup>
-import { ref, computed, watch, nextTick } from 'vue';
+import { ref, watch, nextTick, onUnmounted } from 'vue';
 import CwButton from './CwButton.vue';
 
 const props = defineProps({
@@ -124,6 +133,31 @@ const isOpen = ref(false);
 const dropdownRef = ref(null);
 const triggerRef = ref(null);
 
+const dropdownStyle = ref({});
+
+function updateDropdownPosition() {
+  if (!triggerRef.value) return;
+
+  const rect = triggerRef.value.getBoundingClientRect();
+  const style = {
+    top: `${rect.bottom + 8}px`,
+  };
+
+  if (props.align === 'right') {
+    style.right = `${window.innerWidth - rect.right}px`;
+  } else {
+    style.left = `${rect.left}px`;
+  }
+
+  if (props.width === 'full') {
+    style.width = '100%';
+  } else if (props.width === 'trigger') {
+    style.minWidth = `${rect.width}px`;
+  }
+
+  dropdownStyle.value = style;
+}
+
 const toggle = () => {
   isOpen.value = !isOpen.value;
 };
@@ -138,36 +172,21 @@ const selectItem = (item) => {
   close();
 };
 
-const dropdownStyle = computed(() => {
-  if (!triggerRef.value) return {};
-
-  const rect = triggerRef.value.getBoundingClientRect();
-  const style = {
-    top: `${rect.bottom + 8}px`, // 8px spacing below trigger
-  };
-
-  // Align based on prop
-  if (props.align === 'right') {
-    style.right = `${window.innerWidth - rect.right}px`;
-  } else {
-    style.left = `${rect.left}px`;
-  }
-
-  // Width based on prop
-  if (props.width === 'full') {
-    style.width = '100%';
-  } else if (props.width === 'trigger') {
-    style.minWidth = `${rect.width}px`;
-  }
-
-  return style;
-});
-
 // Recalculate position when dropdown opens
 watch(isOpen, async (newVal) => {
   if (newVal) {
     await nextTick();
-    // Force re-computation of style
+    updateDropdownPosition();
+    window.addEventListener('resize', updateDropdownPosition);
+    window.addEventListener('scroll', updateDropdownPosition, true);
+  } else {
+    window.removeEventListener('resize', updateDropdownPosition);
+    window.removeEventListener('scroll', updateDropdownPosition, true);
   }
+});
+
+onUnmounted(() => {
+  window.removeEventListener('resize', updateDropdownPosition);
+  window.removeEventListener('scroll', updateDropdownPosition, true);
 });
 </script>

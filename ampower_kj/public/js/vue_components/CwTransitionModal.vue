@@ -146,11 +146,6 @@ const handleConfirm = () => {
 </script>
 
 <style scoped>
-/* Custom styles for the transition modal */
-.tw-font-display {
-  font-family: 'Playfair Display', serif;
-}
-
 /* Ensure smooth animations */
 * {
   -webkit-font-smoothing: antialiased;

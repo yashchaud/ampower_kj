@@ -4,7 +4,7 @@
     <CwTabs
       v-model="currentTab"
       :tabs="tabs"
-      class="tw-mb-4 tw-flex-shrink-0"
+      class="tw-mb-4 tw-flex-shrink-0 cw-tabs-list"
     />
 
     <!-- Toolbar -->
@@ -26,7 +26,7 @@
       <!-- Toolbar actions -->
       <div class="tw-flex tw-flex-wrap sm:tw-flex-nowrap tw-items-center tw-gap-2">
         <!-- Filters Dropdown -->
-        <div class="tw-relative tw-inline-block tw-flex-1 sm:tw-flex-none" ref="filtersDropdownRef">
+        <div class="tw-relative tw-inline-block tw-flex-1 sm:tw-flex-none cw-filter-section" ref="filtersDropdownRef">
           <CwButton
             variant="ghost"
             icon="filter_list"
@@ -64,7 +64,7 @@
               <div class="tw-p-5 sm:tw-p-8 tw-flex tw-flex-col tw-gap-6 sm:tw-gap-8">
                 <!-- Field 1: Customer Search -->
                 <div class="tw-flex tw-flex-col tw-gap-2 tw-group">
-                  <label class="tw-text-[11px] tw-font-semibold tw-tracking-[0.15em] tw-text-slate-400 dark:tw-text-slate-500 tw-uppercase">
+                  <label class="tw-text-xs tw-font-bold tw-tracking-[0.15em] tw-text-slate-500 dark:tw-text-slate-400 tw-uppercase">
                     Customer
                   </label>
                   <div class="tw-relative tw-flex tw-items-center tw-w-full tw-border-b tw-border-slate-200 dark:tw-border-slate-600 tw-py-2 group-focus-within:tw-border-blue-600 tw-transition-colors tw-duration-200">
@@ -82,7 +82,7 @@
 
                 <!-- Field 2: Karigar Search -->
                 <div class="tw-flex tw-flex-col tw-gap-2 tw-group">
-                  <label class="tw-text-[11px] tw-font-semibold tw-tracking-[0.15em] tw-text-slate-400 dark:tw-text-slate-500 tw-uppercase">
+                  <label class="tw-text-xs tw-font-bold tw-tracking-[0.15em] tw-text-slate-500 dark:tw-text-slate-400 tw-uppercase">
                     Karigar
                   </label>
                   <div class="tw-relative tw-flex tw-items-center tw-w-full tw-border-b tw-border-slate-200 dark:tw-border-slate-600 tw-py-2 group-focus-within:tw-border-blue-600 tw-transition-colors tw-duration-200">
@@ -100,7 +100,7 @@
 
                 <!-- Field 3: Item Name -->
                 <div class="tw-flex tw-flex-col tw-gap-2 tw-group">
-                  <label class="tw-text-[11px] tw-font-semibold tw-tracking-[0.15em] tw-text-slate-400 dark:tw-text-slate-500 tw-uppercase">
+                  <label class="tw-text-xs tw-font-bold tw-tracking-[0.15em] tw-text-slate-500 dark:tw-text-slate-400 tw-uppercase">
                     Item Name
                   </label>
                   <div class="tw-relative tw-flex tw-items-center tw-w-full tw-border-b tw-border-slate-200 dark:tw-border-slate-600 tw-py-2 group-focus-within:tw-border-blue-600 tw-transition-colors tw-duration-200">
@@ -118,10 +118,10 @@
               </div>
 
               <!-- Footer Actions -->
-              <div class="tw-px-5 sm:tw-px-8 tw-pb-5 sm:tw-pb-8 tw-pt-2 tw-flex tw-flex-col sm:tw-flex-row tw-items-stretch sm:tw-items-center tw-justify-between tw-gap-3 sm:tw-gap-0 tw-border-t tw-border-slate-200 dark:tw-border-slate-700">
+              <div class="tw-px-5 sm:tw-px-8 tw-pb-5 sm:tw-pb-8 tw-pt-3 tw-flex tw-flex-wrap tw-items-center tw-justify-between tw-gap-3 tw-border-t tw-border-slate-200 dark:tw-border-slate-700">
                 <button
                   @click="clearFilters"
-                  class="tw-text-sm tw-font-medium tw-text-slate-400 dark:tw-text-slate-500 hover:tw-text-slate-600 dark:hover:tw-text-slate-300 tw-transition-colors tw-px-2 tw-py-2 tw-rounded tw-order-2 sm:tw-order-1"
+                  class="tw-h-10 tw-inline-flex tw-items-center tw-text-sm tw-font-medium tw-text-slate-500 dark:tw-text-slate-400 hover:tw-text-slate-700 dark:hover:tw-text-slate-200 tw-transition-colors tw-px-2 tw-rounded"
                   :class="{ 'tw-opacity-50 tw-cursor-not-allowed': activeFiltersCount === 0 }"
                   :disabled="activeFiltersCount === 0"
                 >
@@ -129,7 +129,7 @@
                 </button>
                 <button
                   @click="applyFilters"
-                  class="tw-bg-primary-600 hover:tw-bg-primary-500 tw-text-white tw-text-sm tw-font-medium tw-px-6 sm:tw-px-8 tw-py-2.5 tw-rounded-lg tw-shadow-lg tw-shadow-primary-200/20 tw-transition-all hover:tw-shadow-primary-200/30 active:tw-scale-[0.98] tw-order-1 sm:tw-order-2"
+                  class="tw-h-10 tw-bg-primary-600 hover:tw-bg-primary-500 tw-text-white tw-text-sm tw-font-medium tw-px-6 sm:tw-px-8 tw-rounded-lg tw-shadow-lg tw-shadow-primary-200/20 tw-transition-all hover:tw-shadow-primary-200/30 active:tw-scale-[0.98]"
                 >
                   Apply Filters
                 </button>
@@ -243,7 +243,7 @@
       <!-- Loading Overlay -->
       <div
         v-if="isLoading"
-        class="tw-absolute tw-inset-0 tw-bg-white/70 tw-z-10 tw-flex tw-items-center tw-justify-center"
+        class="tw-absolute tw-inset-0 tw-bg-white/70 dark:tw-bg-slate-900/40 tw-z-10 tw-flex tw-items-center tw-justify-center"
       >
         <div class="tw-flex tw-flex-col tw-items-center tw-gap-2">
           <span class="material-symbols-outlined tw-text-3xl tw-text-primary-600 tw-animate-spin">
@@ -286,18 +286,18 @@
       <template #cell-karigar="{ row }">
         <div v-if="row.karigar" class="tw-flex tw-items-center tw-gap-2">
           <CwAvatar :name="row.karigar.name" size="sm" :color="getKarigarColor(row.karigar.color)" />
-          <span class="tw-text-slate-700">{{ row.karigar.name }}</span>
+          <span class="tw-text-slate-700 dark:tw-text-slate-200">{{ row.karigar.name }}</span>
         </div>
         <CwBadge v-else variant="unassigned">Unassigned</CwBadge>
       </template>
 
       <template #cell-item_code="{ value }">
-        <span class="tw-font-mono tw-text-slate-500">{{ value }}</span>
+        <span class="tw-font-mono tw-text-slate-500 dark:tw-text-slate-400">{{ value }}</span>
       </template>
 
       <template #cell-status="{ row }">
         <button
-          class="status-btn tw-inline-flex tw-items-center tw-px-2.5 tw-py-0.5 tw-rounded-full tw-text-xs tw-font-medium tw-transition-all tw-cursor-pointer tw-border"
+          class="status-btn cw-badge tw-inline-flex tw-items-center tw-px-2.5 tw-py-0.5 tw-rounded-full tw-text-xs tw-font-medium tw-transition-all tw-cursor-pointer tw-border"
           :class="getStatusClass(row.status)"
           @click.stop="showStatusMenu(row, $event)"
         >
@@ -318,7 +318,7 @@
       </template>
 
       <template #cell-qty="{ value }">
-        <span class="tw-font-semibold tw-text-slate-900">{{ value }}</span>
+        <span class="tw-font-semibold tw-text-slate-900 dark:tw-text-slate-100">{{ value }}</span>
       </template>
 
       <template #actions="{ row }">
@@ -328,7 +328,7 @@
           @select="(item) => handleRowActionSelect(row, item)"
         >
           <template #trigger>
-            <button class="tw-p-1.5 tw-rounded tw-text-slate-400 hover:tw-text-slate-600 hover:tw-bg-slate-100">
+            <button class="tw-p-1.5 tw-rounded-lg tw-text-slate-400 hover:tw-text-slate-700 hover:tw-bg-slate-100 dark:hover:tw-bg-slate-700/60 dark:hover:tw-text-slate-200 tw-transition-colors">
               <span class="material-symbols-outlined">more_horiz</span>
             </button>
           </template>
@@ -342,15 +342,17 @@
       <div v-if="statusMenuVisible" class="tw-fixed tw-inset-0 tw-z-40" @click="closeStatusMenu"></div>
       <div
         v-if="statusMenuVisible"
-        class="tw-fixed tw-z-50 tw-bg-white tw-rounded-lg tw-shadow-dropdown tw-border tw-border-slate-200 tw-py-1 tw-min-w-[150px]"
+        class="tw-fixed tw-z-50 tw-bg-white dark:tw-bg-slate-800 tw-rounded-lg tw-shadow-dropdown tw-border tw-border-slate-200 dark:tw-border-slate-700 tw-py-1 tw-min-w-[170px]"
         :style="statusMenuStyle"
+        role="menu"
       >
         <button
           v-for="tab in tabs"
           :key="tab.name"
-          class="tw-w-full tw-flex tw-items-center tw-gap-2 tw-px-3 tw-py-2 tw-text-sm tw-text-left hover:tw-bg-slate-50"
-          :class="{ 'tw-bg-slate-50': statusMenuRow?.status === tab.name }"
+          class="tw-w-full tw-flex tw-items-center tw-gap-2 tw-px-3 tw-py-2 tw-text-sm tw-text-left tw-text-slate-700 dark:tw-text-slate-200 hover:tw-bg-slate-50 dark:hover:tw-bg-slate-700/40 tw-transition-colors"
+          :class="{ 'tw-bg-slate-50 dark:tw-bg-slate-700/30': statusMenuRow?.status === tab.name }"
           @click="changeStatus(tab.name)"
+          role="menuitem"
         >
           <span class="tw-w-2 tw-h-2 tw-rounded-full" :class="getStatusDotClass(tab.name)"></span>
           {{ tab.name }}
@@ -1096,7 +1098,7 @@ const handleSortChange = ({ key, order }) => {
 
 const showStatusMenu = (row, event) => {
   statusMenuRow.value = row;
-  const rect = event.target.getBoundingClientRect();
+  const rect = (event.currentTarget || event.target).getBoundingClientRect();
   statusMenuStyle.value = {
     top: `${rect.bottom + 4}px`,
     left: `${rect.left}px`
@@ -1139,20 +1141,52 @@ const changeStatus = async (newStatus) => {
 
 const handleModalSave = async (data) => {
   const stageInfo = getStageInfo();
-  const itemNames = selectedRows.value.map(r => r.id);
+  const itemNames = selectedRows.value.length > 0
+    ? selectedRows.value.map(r => r.id)
+    : (data?.orderId ? [data.orderId] : []);
   const transitionType = data.transitionType || 'received';
+
+  if (itemNames.length === 0) {
+    props.frappe.msgprint({
+      title: 'No Items Selected',
+      message: 'Please select an item (or open an item) before saving.',
+      indicator: 'red'
+    });
+    showOrderModal.value = false;
+    return;
+  }
+
+  if (!stageInfo.next) {
+    props.frappe.msgprint({
+      title: 'End of Workflow',
+      message: 'No next stage available for this item.',
+      indicator: 'orange'
+    });
+    showOrderModal.value = false;
+    return;
+  }
+
+  const parsedWeight = parseFloat(data.grossWeight);
+  if (!isFinite(parsedWeight) || parsedWeight <= 0) {
+    props.frappe.msgprint({
+      title: 'Invalid Weight',
+      message: 'Please enter a valid weight greater than 0.',
+      indicator: 'red'
+    });
+    return;
+  }
 
   const extraArgs = {};
 
   if (transitionType === 'received') {
     // Incoming to Internal QA
-    const weight = parseFloat(data.grossWeight);
-    extraArgs.karigar_received_weight = isNaN(weight) ? 0 : weight;
+    const weight = parsedWeight;
+    extraArgs.karigar_received_weight = weight;
     extraArgs.receive_notes = data.remarks || '';
   } else if (transitionType === 'dispatch') {
     // Pending Delivery to Delivered
-    const weight = parseFloat(data.grossWeight);
-    extraArgs.dispatch_weight = isNaN(weight) ? 0 : weight;
+    const weight = parsedWeight;
+    extraArgs.dispatch_weight = weight;
     extraArgs.qa_notes = data.remarks || '';
   }
 

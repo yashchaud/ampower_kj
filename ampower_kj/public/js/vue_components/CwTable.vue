@@ -1,14 +1,29 @@
 <template>
-  <div class="tw-h-full tw-min-h-[400px] md:tw-min-h-0 tw-bg-white dark:tw-bg-slate-800 tw-border tw-border-gray-200 dark:tw-border-gray-700 tw-rounded-lg tw-shadow-sm tw-flex tw-flex-col tw-relative">
+  <div class="tw-h-full tw-min-h-[400px] md:tw-min-h-0 tw-bg-white dark:tw-bg-slate-800 tw-border tw-border-gray-200 dark:tw-border-gray-700 tw-rounded-xl tw-shadow-sm tw-flex tw-flex-col tw-relative tw-overflow-hidden">
     <!-- Keyboard Shortcuts Hint -->
-    <div
+    <button
       v-if="showKeyboardHint"
-      class="tw-absolute tw-top-3 tw-right-3 tw-z-20 tw-bg-gradient-to-r tw-from-blue-500 tw-to-purple-600 tw-text-white tw-px-3 tw-py-1.5 tw-rounded-full tw-shadow-lg tw-flex tw-items-center tw-gap-2 tw-text-xs tw-font-medium tw-animate-pulse tw-cursor-pointer hover:tw-scale-105 tw-transition-transform"
+      type="button"
+      class="tw-absolute tw-top-3 tw-right-3 tw-z-20 tw-bg-white/90 dark:tw-bg-slate-800/90 tw-backdrop-blur tw-text-slate-700 dark:tw-text-slate-200 tw-px-3 tw-py-1.5 tw-rounded-full tw-shadow-md tw-border tw-border-slate-200 dark:tw-border-slate-700 tw-flex tw-items-center tw-gap-2 tw-text-xs tw-font-medium hover:tw-bg-white dark:hover:tw-bg-slate-800 tw-transition-colors"
+      aria-haspopup="dialog"
+      :aria-expanded="showKeyboardPanel ? 'true' : 'false'"
       @click="toggleKeyboardPanel"
     >
       <span class="material-symbols-outlined tw-text-[16px]">keyboard</span>
-      <span>Keyboard shortcuts</span>
-    </div>
+      <span>Shortcuts</span>
+      <span class="tw-text-slate-400 dark:tw-text-slate-500">?</span>
+    </button>
+    <button
+      v-else
+      type="button"
+      class="tw-absolute tw-top-3 tw-right-3 tw-z-20 tw-w-9 tw-h-9 tw-rounded-full tw-bg-white/80 dark:tw-bg-slate-800/80 tw-backdrop-blur tw-border tw-border-slate-200 dark:tw-border-slate-700 tw-text-slate-500 dark:tw-text-slate-300 hover:tw-text-slate-700 dark:hover:tw-text-slate-100 hover:tw-bg-white dark:hover:tw-bg-slate-800 tw-shadow-sm tw-transition-colors tw-flex tw-items-center tw-justify-center"
+      aria-label="Keyboard shortcuts"
+      aria-haspopup="dialog"
+      :aria-expanded="showKeyboardPanel ? 'true' : 'false'"
+      @click="toggleKeyboardPanel"
+    >
+      <span class="material-symbols-outlined tw-text-[18px]">keyboard</span>
+    </button>
 
     <!-- Keyboard Shortcuts Panel -->
     <Teleport to="body">
@@ -28,20 +43,32 @@
           <div
             class="tw-bg-white dark:tw-bg-slate-800 tw-rounded-2xl tw-shadow-2xl tw-p-6 tw-max-w-md tw-w-full tw-mx-4"
             @click.stop
+            role="dialog"
+            aria-modal="true"
+            :aria-labelledby="keyboardTitleId"
           >
             <div class="tw-flex tw-items-center tw-justify-between tw-mb-4">
-              <h3 class="tw-text-lg tw-font-bold tw-text-gray-900 dark:tw-text-white tw-flex tw-items-center tw-gap-2">
+              <h3 :id="keyboardTitleId" class="tw-text-lg tw-font-bold tw-text-gray-900 dark:tw-text-white tw-flex tw-items-center tw-gap-2">
                 <span class="material-symbols-outlined tw-text-blue-600">keyboard</span>
                 Keyboard Shortcuts
               </h3>
               <button
                 @click="showKeyboardPanel = false"
                 class="tw-p-1 tw-rounded-lg hover:tw-bg-gray-100 dark:hover:tw-bg-slate-700 tw-transition-colors"
+                aria-label="Close keyboard shortcuts"
+                ref="keyboardCloseRef"
               >
                 <span class="material-symbols-outlined tw-text-gray-500">close</span>
               </button>
             </div>
+            <p class="tw-text-xs tw-text-gray-500 dark:tw-text-gray-400 tw-mb-4">
+              Tip: click the table (or Tab into it) then use ↑/↓. Press ? anytime.
+            </p>
             <div class="tw-space-y-3">
+              <div class="tw-flex tw-items-center tw-justify-between tw-py-2">
+                <span class="tw-text-sm tw-text-gray-600 dark:tw-text-gray-400">Open this menu</span>
+                <kbd class="kbd">?</kbd>
+              </div>
               <div class="tw-flex tw-items-center tw-justify-between tw-py-2">
                 <span class="tw-text-sm tw-text-gray-600 dark:tw-text-gray-400">Navigate rows</span>
                 <div class="tw-flex tw-gap-1">
@@ -98,8 +125,18 @@
       </Transition>
     </Teleport>
 
-    <div class="tw-overflow-x-auto tw-overflow-y-auto custom-scroll no-scrollbar-mobile tw-flex-1 tw-relative" tabindex="0" @keydown="handleKeyDown">
-      <table class="tw-min-w-full tw-divide-y tw-divide-gray-200 dark:tw-divide-gray-700 tw-border-separate tw-border-spacing-0">
+    <p :id="helpTextId" class="tw-sr-only">
+      This table supports keyboard navigation. Press ? to view keyboard shortcuts.
+    </p>
+    <div
+      class="tw-overflow-x-auto tw-overflow-y-auto custom-scroll no-scrollbar-mobile tw-flex-1 tw-relative"
+      tabindex="0"
+      aria-label="Data table"
+      :aria-describedby="helpTextId"
+      @keydown="handleKeyDown"
+    >
+      <table class="tw-min-w-full tw-border-separate tw-border-spacing-0">
+        <caption class="tw-sr-only">Data table</caption>
         <thead class="tw-bg-gray-50 dark:tw-bg-slate-800">
           <tr class="tw-h-14">
             <!-- Checkbox column -->
@@ -111,6 +148,7 @@
                   class="tw-rounded tw-border-gray-300 tw-text-primary tw-h-4 tw-w-4 tw-bg-white dark:tw-bg-slate-700 dark:tw-border-gray-600 tw-cursor-pointer focus:tw-ring-primary"
                   :checked="allSelected"
                   :indeterminate="someSelected"
+                  aria-label="Select all rows"
                   @change="toggleSelectAll"
                 />
               </div>
@@ -120,10 +158,14 @@
               v-for="col in columns"
               :key="col.key"
               scope="col"
-              class="tw-sticky tw-top-0 tw-z-10 tw-bg-gray-50 dark:tw-bg-slate-800 tw-px-3 tw-text-[11px] tw-font-bold tw-text-slate-500 dark:tw-text-slate-400 tw-uppercase tw-tracking-wider tw-border-b tw-border-gray-200 dark:tw-border-gray-700 group hover:tw-bg-gray-100 dark:hover:tw-bg-slate-700 tw-transition-colors tw-align-middle"
+              class="tw-sticky tw-top-0 tw-z-10 tw-bg-gray-50 dark:tw-bg-slate-800 tw-px-3 tw-text-[11px] tw-font-semibold tw-text-slate-500 dark:tw-text-slate-400 tw-uppercase tw-tracking-wider tw-border-b tw-border-gray-200 dark:tw-border-gray-700 group hover:tw-bg-gray-100 dark:hover:tw-bg-slate-700 tw-transition-colors tw-align-middle focus:tw-outline-none focus:tw-ring-2 focus:tw-ring-primary-500/25 focus:tw-ring-inset"
               :class="[getHeaderAlignmentClass(col), col.headerClass, col.sortable ? 'tw-cursor-pointer' : '']"
               :style="col.width ? { width: col.width } : {}"
+              :tabindex="col.sortable ? 0 : undefined"
+              :aria-sort="col.sortable ? getAriaSort(col.key) : undefined"
               @click="col.sortable && handleSort(col.key)"
+              @keydown.enter.prevent="col.sortable && handleSort(col.key)"
+              @keydown.space.prevent="col.sortable && handleSort(col.key)"
             >
               <div class="tw-flex tw-items-center tw-h-full" :class="getHeaderFlexAlignment(col)">
                 {{ col.label }}
@@ -134,6 +176,14 @@
                   {{ getSortIcon(col.key) }}
                 </span>
               </div>
+            </th>
+            <!-- Actions column -->
+            <th
+              v-if="hasActions"
+              scope="col"
+              class="tw-sticky tw-top-0 tw-z-10 tw-bg-gray-50 dark:tw-bg-slate-800 tw-px-3 tw-text-[11px] tw-font-semibold tw-text-slate-500 dark:tw-text-slate-400 tw-uppercase tw-tracking-wider tw-border-b tw-border-gray-200 dark:tw-border-gray-700 tw-text-right"
+            >
+              <span class="tw-sr-only">Actions</span>
             </th>
           </tr>
         </thead>
@@ -149,6 +199,7 @@
               focusedRowIndex === index ? 'tw-ring-2 tw-ring-blue-500 tw-ring-inset' : '',
               index % 2 === 1 ? 'tw-bg-slate-50/30 dark:tw-bg-slate-800/20' : ''
             ]"
+            :aria-selected="isSelected(row) ? 'true' : 'false'"
             @click="handleRowClick(row, index, $event)"
             @dblclick="handleRowDblClick(row)"
           >
@@ -158,6 +209,7 @@
                 type="checkbox"
                 class="tw-rounded tw-border-gray-300 tw-text-primary focus:tw-ring-primary tw-h-4 tw-w-4 tw-bg-white dark:tw-bg-slate-700 dark:tw-border-gray-600 tw-cursor-pointer tw-opacity-50 group-hover:tw-opacity-100 tw-transition-opacity"
                 :checked="isSelected(row)"
+                :aria-label="`Select row ${index + 1}`"
                 @change="toggleSelect(row)"
               />
             </td>
@@ -165,7 +217,7 @@
             <td
               v-for="col in columns"
               :key="col.key"
-              class="tw-px-3 tw-py-2.5 tw-whitespace-nowrap tw-text-sm"
+              class="tw-px-3 tw-py-2.5 tw-whitespace-nowrap tw-text-sm tw-text-slate-700 dark:tw-text-slate-200"
               :class="col.cellClass"
             >
               <slot
@@ -177,9 +229,16 @@
               </slot>
             </td>
             <!-- Actions column -->
+            <td
+              v-if="hasActions"
+              class="tw-px-3 tw-py-3 tw-text-right tw-whitespace-nowrap"
+              @click.stop
+            >
+              <slot name="actions" :row="row" />
+            </td>
           </tr>
           <tr v-else>
-            <td :colspan="totalColumns" class="tw-px-4 tw-py-12 tw-text-center tw-text-slate-500">
+            <td :colspan="totalColumns" class="tw-px-4 tw-py-12 tw-text-center tw-text-slate-500 dark:tw-text-slate-400">
               <slot name="empty">
                 <div class="tw-flex tw-flex-col tw-items-center tw-gap-2">
                   <span class="material-symbols-outlined tw-text-4xl tw-text-slate-300">inbox</span>
@@ -262,7 +321,7 @@
 </template>
 
 <script setup>
-import { computed, ref, watch, onMounted, onUnmounted } from 'vue';
+import { computed, ref, watch, onMounted, onUnmounted, nextTick } from 'vue';
 
 const props = defineProps({
   columns: {
@@ -326,18 +385,36 @@ const showKeyboardHint = ref(false);
 const showKeyboardPanel = ref(false);
 const dontShowAgain = ref(false);
 const lastSelectedIndex = ref(-1);
+const keyboardCloseRef = ref(null);
+
+let hintTimerId = null;
+let autoHideTimerId = null;
+
+const helpTextId = `cw-table-help-${Math.random().toString(36).slice(2)}`;
+const keyboardTitleId = `cw-table-shortcuts-title-${Math.random().toString(36).slice(2)}`;
 
 // Show keyboard hint on mount (only if user hasn't dismissed it)
 onMounted(() => {
   const dismissed = localStorage.getItem('cw-table-keyboard-hint-dismissed');
   if (!dismissed) {
-    setTimeout(() => {
+    hintTimerId = setTimeout(() => {
       showKeyboardHint.value = true;
       // Auto-hide after 8 seconds
-      setTimeout(() => {
+      autoHideTimerId = setTimeout(() => {
         showKeyboardHint.value = false;
       }, 8000);
     }, 1000);
+  }
+});
+
+onUnmounted(() => {
+  if (hintTimerId) {
+    clearTimeout(hintTimerId);
+    hintTimerId = null;
+  }
+  if (autoHideTimerId) {
+    clearTimeout(autoHideTimerId);
+    autoHideTimerId = null;
   }
 });
 
@@ -352,6 +429,13 @@ watch(dontShowAgain, (newVal) => {
 const toggleKeyboardPanel = () => {
   showKeyboardPanel.value = !showKeyboardPanel.value;
 };
+
+watch(showKeyboardPanel, async (newVal) => {
+  if (newVal) {
+    await nextTick();
+    keyboardCloseRef.value?.focus?.();
+  }
+});
 
 const totalColumns = computed(() => {
   let count = props.columns.length;
@@ -536,11 +620,17 @@ const handleRowDblClick = (row) => {
 };
 
 const handleKeyDown = (event) => {
-  if (!props.data || props.data.length === 0) return;
-
   const key = event.key;
   const isShift = event.shiftKey;
   const isCtrl = event.ctrlKey || event.metaKey;
+
+  if (key === '?') {
+    event.preventDefault();
+    toggleKeyboardPanel();
+    return;
+  }
+
+  if (!props.data || props.data.length === 0) return;
 
   // Ctrl/Cmd + A - Select all
   if (isCtrl && key === 'a') {
@@ -602,6 +692,11 @@ const handleKeyDown = (event) => {
     }
     return;
   }
+};
+
+const getAriaSort = (key) => {
+  if (!props.sortKey || props.sortKey !== key) return 'none';
+  return props.sortOrder === 'desc' ? 'descending' : 'ascending';
 };
 
 // Reset focused row when data changes

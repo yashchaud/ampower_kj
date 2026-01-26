@@ -18,10 +18,20 @@ export function useWorkflowApi() {
    */
   function handleApiError(err, context, showToUser = true) {
     // Extract error message from various error formats
+    let serverMessage;
+    if (err?._server_messages) {
+      try {
+        const parsed = JSON.parse(err._server_messages);
+        serverMessage = Array.isArray(parsed) ? parsed[0] : parsed;
+      } catch {
+        serverMessage = err._server_messages;
+      }
+    }
+
     const errorMessage = err?.exc_type
       ? err.message
-      : err?._server_messages
-        ? JSON.parse(err._server_messages)[0]
+      : serverMessage
+        ? serverMessage
         : err?.message || `Failed to ${context}`;
 
     error.value = errorMessage;
