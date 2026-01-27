@@ -296,15 +296,13 @@
       </template>
 
       <template #cell-status="{ row }">
-        <button
-          class="status-btn cw-badge tw-inline-flex tw-items-center tw-px-2.5 tw-py-0.5 tw-rounded-full tw-text-xs tw-font-medium tw-transition-all tw-cursor-pointer tw-border"
+        <span
+          class="status-btn cw-badge tw-inline-flex tw-items-center tw-px-2.5 tw-py-0.5 tw-rounded-full tw-text-xs tw-font-medium tw-transition-all tw-border"
           :class="getStatusClass(row.status)"
-          @click.stop="showStatusMenu(row, $event)"
         >
           <span class="status-dot tw-w-1.5 tw-h-1.5 tw-rounded-full tw-mr-1.5" :class="getStatusDotClass(row.status)"></span>
           {{ row.status }}
-          <span class="material-symbols-outlined status-icon tw-text-xs tw-ml-1 tw-opacity-0 group-hover:tw-opacity-100 tw-transition-opacity">expand_more</span>
-        </button>
+        </span>
       </template>
 
       <template #cell-sales_order="{ row }">
@@ -369,14 +367,6 @@
       @save="handleModalSave"
     />
 
-    <!-- Split Modal (Legacy - kept for compatibility) -->
-    <CwSplitModal
-      v-model="showSplitModal"
-      :selected-orders="selectedRows"
-      :frappe="props.frappe"
-      @split-complete="handleSplitComplete"
-    />
-
     <!-- Advanced Split Modal (New) -->
     <CwAdvancedSplitModal
       v-model="showAdvancedSplitModal"
@@ -415,7 +405,6 @@ import CwDropdown from './CwDropdown.vue';
 import CwBadge from './CwBadge.vue';
 import CwAvatar from './CwAvatar.vue';
 import CwOrderItemModal from './CwOrderItemModal.vue';
-import CwSplitModal from './CwSplitModal.vue';
 import CwAdvancedSplitModal from './CwAdvancedSplitModal.vue';
 import CwBulkWeightModal from './CwBulkWeightModal.vue';
 import CwTransitionModal from './CwTransitionModal.vue';
@@ -1167,10 +1156,12 @@ const handleModalSave = async (data) => {
   }
 
   const parsedWeight = parseFloat(data.grossWeight);
-  if (!isFinite(parsedWeight) || parsedWeight <= 0) {
+  if (!isFinite(parsedWeight) || parsedWeight <= 0 || parsedWeight > 999999) {
     props.frappe.msgprint({
       title: 'Invalid Weight',
-      message: 'Please enter a valid weight greater than 0.',
+      message: parsedWeight > 999999
+        ? 'Weight cannot exceed 999,999g (999kg). Please enter a valid weight.'
+        : 'Please enter a valid weight greater than 0.',
       indicator: 'red'
     });
     return;
@@ -1194,18 +1185,41 @@ const handleModalSave = async (data) => {
 
   if (results && results.length > 0) {
     const successCount = results.filter(r => r.success).length;
-    props.frappe.show_alert({
-      message: `${successCount} item(s) moved to ${stageInfo.next} with weight ${data.grossWeight}g`,
-      indicator: 'green'
+    const failureCount = results.filter(r => !r.success).length;
+
+    if (successCount > 0) {
+      props.frappe.show_alert({
+        message: `${successCount} item(s) moved to ${stageInfo.next} with weight ${parsedWeight.toFixed(2)}g`,
+        indicator: 'green'
+      });
+
+      // Reload data
+      await loadOrders();
+      await loadStatusCounts();
+
+      // Clear selection and switch to target tab
+      selectedRows.value = [];
+      currentTab.value = stageInfo.next;
+    }
+
+    if (failureCount > 0) {
+      const failedItems = results.filter(r => !r.success);
+      const errorMessages = failedItems.map(r => r.error || 'Unknown error').join(', ');
+
+      props.frappe.msgprint({
+        title: `Failed to Update ${failureCount} Item(s)`,
+        message: errorMessages.length > 200
+          ? `${errorMessages.substring(0, 200)}... (${failureCount} items failed)`
+          : errorMessages,
+        indicator: 'red'
+      });
+    }
+  } else {
+    props.frappe.msgprint({
+      title: 'Update Failed',
+      message: 'No items were updated. Please try again or contact support.',
+      indicator: 'red'
     });
-
-    // Reload data
-    await loadOrders();
-    await loadStatusCounts();
-
-    // Clear selection and switch to target tab
-    selectedRows.value = [];
-    currentTab.value = stageInfo.next;
   }
 
   showOrderModal.value = false;
