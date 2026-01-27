@@ -151,13 +151,13 @@ context('Custom Workflow - Fixed with Proper Timeouts', () => {
                 cy.log('✓ Tabs component found');
             });
 
-        // Step 5: Verify tab buttons are actually rendered
-        cy.get('.cw-tabs-list button', { timeout: 15000 })
+        // Step 5: Verify tab labels are actually rendered (tabs use <label> not <button>)
+        cy.get('.cw-tabs-list label', { timeout: 15000 })
             .should('have.length.at.least', 1)
             .first()
             .should('be.visible')
-            .then($buttons => {
-                cy.log(`✓ Found ${$buttons.length} tab buttons`);
+            .then($labels => {
+                cy.log(`✓ Found ${$labels.length} tab labels`);
             });
 
         // Step 6: Wait a bit more for any final rendering
@@ -197,7 +197,7 @@ context('Custom Workflow - Fixed with Proper Timeouts', () => {
         waitForVueApp();
 
         // Final verification
-        cy.get('.cw-tabs-list button').should('have.length.at.least', 6);
+        cy.get('.cw-tabs-list label').should('have.length.at.least', 6);
     });
 
     it('should load page and render all tabs', () => {
@@ -208,7 +208,7 @@ context('Custom Workflow - Fixed with Proper Timeouts', () => {
         // Verify each tab exists
         expectedTabs.forEach((tabName, index) => {
             cy.get('.cw-tabs-list')
-                .contains('button', tabName)
+                .contains('label', tabName)
                 .should('be.visible')
                 .then(() => {
                     cy.log(`✓ Tab ${index + 1}/${expectedTabs.length}: ${tabName}`);
@@ -226,7 +226,7 @@ context('Custom Workflow - Fixed with Proper Timeouts', () => {
         tabs.forEach((tabName, index) => {
             cy.log(`Testing tab ${index + 1}/${tabs.length}: ${tabName}`);
 
-            cy.get('.cw-tabs-list button').contains(tabName).click();
+            cy.get('.cw-tabs-list label').contains(tabName).click();
             cy.wait(1500); // Wait for tab content to render
 
             // Verify table exists
@@ -242,7 +242,7 @@ context('Custom Workflow - Fixed with Proper Timeouts', () => {
         waitForVueApp();
 
         cy.log('Navigating to Incoming tab...');
-        cy.get('.cw-tabs-list button').contains('Incoming').click();
+        cy.get('.cw-tabs-list label').contains('Incoming').click();
         cy.wait(2000); // Wait for data to load
 
         // Verify table has data
@@ -252,8 +252,8 @@ context('Custom Workflow - Fixed with Proper Timeouts', () => {
             cy.log(`Found ${$rows.length} rows in Incoming tab`);
         });
 
-        // Find our test order
-        cy.get('tbody').contains(orderLedgerName).should('be.visible').then(() => {
+        // Find our test order - scroll into view if clipped
+        cy.get('tbody').contains(orderLedgerName).scrollIntoView().should('be.visible').then(() => {
             cy.log(`✓ Test order ${orderLedgerName} found in table`);
         });
     });
@@ -261,11 +261,12 @@ context('Custom Workflow - Fixed with Proper Timeouts', () => {
     it('should open order modal when row clicked', () => {
         waitForVueApp();
 
-        cy.get('.cw-tabs-list button').contains('Incoming').click();
+        cy.get('.cw-tabs-list label').contains('Incoming').click();
         cy.wait(2000);
 
-        // Click on our test order
+        // Click on our test order - scroll into view first
         cy.get('tbody').contains(orderLedgerName)
+            .scrollIntoView()
             .should('be.visible')
             .parents('tr')
             .first()
@@ -312,7 +313,7 @@ context('Custom Workflow - Fixed with Proper Timeouts', () => {
             }
 
             // Don't fail test, just log performance
-            cy.task('log', `Custom Workflow load time: ${loadTimeSec}s`);
+            cy.log(`Custom Workflow load time: ${loadTimeSec}s`);
         });
     });
 });

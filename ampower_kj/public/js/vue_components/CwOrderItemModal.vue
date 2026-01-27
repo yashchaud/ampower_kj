@@ -124,18 +124,22 @@
                         <div class="tw-relative">
                           <input
                             v-model="formData.grossWeight"
-                            class="tw-block tw-w-full tw-rounded-xl tw-border-primary/50 tw-bg-white tw-py-3 tw-pl-3 tw-pr-8 tw-text-[#111418] tw-font-bold tw-text-lg placeholder:tw-text-gray-300 focus:tw-border-primary focus:tw-ring-primary tw-shadow-sm tw-transition-shadow"
+                            class="tw-block tw-w-full tw-rounded-xl tw-bg-white tw-py-3 tw-pl-3 tw-pr-8 tw-text-[#111418] tw-font-bold tw-text-lg placeholder:tw-text-gray-300 focus:tw-ring-primary tw-shadow-sm tw-transition-shadow"
+                            :class="weightError ? 'tw-border-red-500 focus:tw-border-red-500' : 'tw-border-primary/50 focus:tw-border-primary'"
                             id="gross-weight"
                             name="gross-weight"
                             placeholder="0.00"
                             step="0.01"
                             min="0"
+                            max="999999"
                             type="number"
+                            @input="validateWeightInput"
                           />
                           <div class="tw-absolute tw-inset-y-0 tw-right-0 tw-flex tw-items-center tw-pr-3 tw-pointer-events-none">
                             <span class="tw-text-gray-400 tw-text-sm tw-font-bold">g</span>
                           </div>
                         </div>
+                        <p v-if="weightError" class="tw-mt-1 tw-text-xs tw-text-red-600 tw-font-medium">{{ weightError }}</p>
                       </div>
 
                       <!-- Item Weight (Reference) -->
@@ -322,9 +326,41 @@ const formData = ref({
   remarks: ''
 });
 
+const weightError = ref('');
+
+// Validate weight input
+const validateWeightInput = () => {
+  const weight = parseFloat(formData.value.grossWeight);
+
+  if (formData.value.grossWeight === '') {
+    weightError.value = '';
+    return;
+  }
+
+  if (isNaN(weight)) {
+    weightError.value = 'Please enter a valid number';
+    return;
+  }
+
+  if (weight <= 0) {
+    weightError.value = 'Weight must be greater than 0';
+    return;
+  }
+
+  if (weight > 999999) {
+    weightError.value = 'Weight cannot exceed 999,999g (999kg)';
+    return;
+  }
+
+  weightError.value = '';
+};
+
 // Computed
 const isFormValid = computed(() => {
-  return formData.value.grossWeight && parseFloat(formData.value.grossWeight) > 0;
+  return formData.value.grossWeight &&
+         parseFloat(formData.value.grossWeight) > 0 &&
+         parseFloat(formData.value.grossWeight) <= 999999 &&
+         !weightError.value;
 });
 
 // Watch for modal open/close to manage form state
@@ -339,6 +375,7 @@ watch(() => props.modelValue, (newVal) => {
         grossWeight: '',
         remarks: ''
       };
+      weightError.value = '';
     }
   } else {
     // Modal closed - reset form
@@ -346,6 +383,7 @@ watch(() => props.modelValue, (newVal) => {
       grossWeight: '',
       remarks: ''
     };
+    weightError.value = '';
     currentImageIndex.value = 0;
   }
 });

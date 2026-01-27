@@ -25,7 +25,7 @@ module.exports = {
       // Use Frappe's plugins (code coverage)
       return require(path.resolve(__dirname, "../frappe/cypress/plugins/index.js"))(on, config);
     },
-    testIsolation: false,
+    testIsolation: true,
     baseUrl: "http://localhost:8000",
     specPattern: ["./cypress/integration/*.cy.js"],
     supportFile: "./cypress/support/e2e.js",

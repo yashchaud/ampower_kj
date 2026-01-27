@@ -1,5 +1,6 @@
 /** @type {import('tailwindcss').Config} */
 module.exports = {
+  darkMode: 'class',
   content: [
     "./ampower_kj/public/js/**/*.{vue,js,jsx}",
     "./ampower_kj/ampower_keerti_pristine_jewels/page/**/*.{js,html}",

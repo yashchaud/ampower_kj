@@ -1,5 +1,5 @@
 <template>
-  <div class="tw-font-sans tw-h-screen tw-flex tw-flex-col tw-px-4">
+  <div class="tw-font-sans tw-h-screen tw-flex tw-flex-col tw-px-4 tw-bg-white dark:tw-bg-gray-900">
     <!-- Tabs -->
     <CwTabs
       v-model="currentTab"

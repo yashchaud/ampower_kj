@@ -7,6 +7,8 @@ Cypress.config('pageLoadTimeout', 60000);
 
 context('Debug Vue App Loading', () => {
     it('should capture console errors and page state', () => {
+        cy.login();
+
         const consoleErrors = [];
         const consoleWarnings = [];
 
@@ -119,6 +121,7 @@ context('Debug Vue App Loading', () => {
     });
 
     it('should manually try to mount Vue app', () => {
+        cy.login();
         cy.visit('/app/custom-workflow');
         cy.window().its('frappe').should('exist');
         cy.wait(10000); // Wait for bundles
