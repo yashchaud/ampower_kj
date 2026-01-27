@@ -11,14 +11,14 @@
     <div class="tw-flex tw-flex-col sm:tw-flex-row tw-items-stretch sm:tw-items-center tw-justify-between tw-gap-3 sm:tw-gap-4 tw-mb-4 tw-py-3 tw-flex-shrink-0 tw-relative tw-z-[70]">
       <!-- Search -->
       <div class="tw-relative tw-w-full sm:tw-flex-1 sm:tw-max-w-md">
-        <span class="material-symbols-outlined tw-absolute tw-left-3 tw-top-1/2 tw--translate-y-1/2 tw-text-slate-400 tw-text-lg">
+        <span class="material-symbols-outlined tw-absolute tw-left-3 tw-top-1/2 tw--translate-y-1/2 tw-text-slate-400 dark:tw-text-slate-500 tw-text-lg">
           search
         </span>
         <input
           v-model="searchQuery"
           type="text"
           placeholder="Search orders, customers, items..."
-          class="tw-w-full tw-pl-10 tw-pr-12 tw-py-2.5 tw-text-sm tw-bg-slate-50 tw-border tw-border-slate-200 tw-rounded-lg focus:tw-bg-white focus:tw-border-primary-500 focus:tw-ring-2 focus:tw-ring-primary-100 tw-outline-none tw-transition-all placeholder:tw-text-slate-400"
+          class="tw-w-full tw-pl-10 tw-pr-12 tw-py-2.5 tw-text-sm tw-bg-slate-50 dark:tw-bg-slate-800 tw-border tw-border-slate-200 dark:tw-border-slate-700 tw-rounded-lg focus:tw-bg-white dark:focus:tw-bg-slate-700 focus:tw-border-primary-500 focus:tw-ring-2 focus:tw-ring-primary-100 dark:focus:tw-ring-primary-900 tw-outline-none tw-transition-all placeholder:tw-text-slate-400 dark:placeholder:tw-text-slate-500 tw-text-slate-900 dark:tw-text-slate-100"
           @input="handleSearch"
         />
       </div>
@@ -35,7 +35,7 @@
             class="tw-w-full sm:tw-w-auto"
           >
             Filters
-            <span v-if="activeFiltersCount > 0" class="tw-ml-1.5 tw-px-1.5 tw-py-0.5 tw-bg-primary-100 tw-text-primary-700 tw-text-xs tw-font-semibold tw-rounded">
+            <span v-if="activeFiltersCount > 0" class="tw-ml-1.5 tw-px-1.5 tw-py-0.5 tw-bg-primary-100 dark:tw-bg-primary-900 tw-text-primary-700 dark:tw-text-primary-300 tw-text-xs tw-font-semibold tw-rounded">
               {{ activeFiltersCount }}
             </span>
           </CwButton>
