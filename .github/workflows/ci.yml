@@ -87,7 +87,7 @@ jobs:
 
       - name: Install MariaDB Client
         if: steps.check-tests.outputs.has_tests == 'true'
-        run: sudo apt-get install -y mariadb-client-10.6
+        run: sudo apt-get update && sudo apt-get install -y mariadb-client
 
       - name: Setup Frappe Bench
         if: steps.check-tests.outputs.has_tests == 'true'
