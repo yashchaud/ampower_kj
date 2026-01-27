@@ -741,12 +741,12 @@ watch(() => props.data, () => {
   /* Maintain readable text on tablets */
   th {
     font-size: 0.75rem !important;
-    padding: 0.5rem !important;
+    padding: 0.75rem 1rem !important;
   }
 
   td {
     font-size: 0.875rem !important;
-    padding: 0.5rem !important;
+    padding: 1rem !important;
   }
 }
 
@@ -760,13 +760,13 @@ watch(() => props.data, () => {
   /* Better readable text and padding on mobile */
   th {
     font-size: 0.75rem !important;
-    padding: 0.5rem 0.375rem !important;
+    padding: 0.75rem 0.5rem !important;
     white-space: nowrap;
   }
 
   td {
     font-size: 0.875rem !important;
-    padding: 0.5rem 0.375rem !important;
+    padding: 1rem 0.5rem !important;
     white-space: nowrap;
   }
 
@@ -786,7 +786,7 @@ watch(() => props.data, () => {
 @media (max-width: 480px) {
   th, td {
     font-size: 0.75rem !important;
-    padding: 0.375rem 0.25rem !important;
+    padding: 0.5rem 0.375rem !important;
   }
 
   /* Even smaller checkboxes */
