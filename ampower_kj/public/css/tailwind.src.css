@@ -73,6 +73,31 @@
     @apply focus:tw-outline-none focus:tw-ring-2 focus:tw-ring-primary-500 focus:tw-border-primary-500;
     @apply placeholder:tw-text-slate-400;
   }
+
+  /* Custom Workflow Table Improvements */
+  .cw-table-wrapper {
+    @apply tw-overflow-x-auto;
+  }
+
+  .cw-table {
+    @apply tw-w-full tw-border-collapse;
+  }
+
+  .cw-table thead th {
+    @apply tw-px-4 tw-py-3 tw-text-left tw-text-xs tw-font-semibold tw-text-slate-700 tw-uppercase tw-tracking-wider tw-bg-slate-50 tw-border-b tw-border-slate-200;
+  }
+
+  .cw-table tbody td {
+    @apply tw-px-4 tw-py-3.5 tw-text-sm tw-text-slate-700 tw-border-b tw-border-slate-100;
+  }
+
+  .cw-table tbody tr {
+    @apply tw-transition-colors hover:tw-bg-slate-50;
+  }
+
+  .cw-table tbody tr.selected {
+    @apply tw-bg-primary-50;
+  }
 }
 
 /* Ensure Material Symbols work */

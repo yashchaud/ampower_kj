@@ -158,7 +158,7 @@
               v-for="col in columns"
               :key="col.key"
               scope="col"
-              class="tw-sticky tw-top-0 tw-z-10 tw-bg-gray-50 dark:tw-bg-slate-800 tw-px-3 tw-text-[11px] tw-font-semibold tw-text-slate-500 dark:tw-text-slate-400 tw-uppercase tw-tracking-wider tw-border-b tw-border-gray-200 dark:tw-border-gray-700 group hover:tw-bg-gray-100 dark:hover:tw-bg-slate-700 tw-transition-colors tw-align-middle focus:tw-outline-none focus:tw-ring-2 focus:tw-ring-primary-500/25 focus:tw-ring-inset"
+              class="tw-sticky tw-top-0 tw-z-10 tw-bg-gray-50 dark:tw-bg-slate-800 tw-px-4 tw-py-3 tw-text-[11px] tw-font-semibold tw-text-slate-500 dark:tw-text-slate-400 tw-uppercase tw-tracking-wider tw-border-b tw-border-gray-200 dark:tw-border-gray-700 group hover:tw-bg-gray-100 dark:hover:tw-bg-slate-700 tw-transition-colors tw-align-middle focus:tw-outline-none focus:tw-ring-2 focus:tw-ring-primary-500/25 focus:tw-ring-inset"
               :class="[getHeaderAlignmentClass(col), col.headerClass, col.sortable ? 'tw-cursor-pointer' : '']"
               :style="col.width ? { width: col.width } : {}"
               :tabindex="col.sortable ? 0 : undefined"
@@ -176,14 +176,6 @@
                   {{ getSortIcon(col.key) }}
                 </span>
               </div>
-            </th>
-            <!-- Actions column -->
-            <th
-              v-if="hasActions"
-              scope="col"
-              class="tw-sticky tw-top-0 tw-z-10 tw-bg-gray-50 dark:tw-bg-slate-800 tw-px-3 tw-text-[11px] tw-font-semibold tw-text-slate-500 dark:tw-text-slate-400 tw-uppercase tw-tracking-wider tw-border-b tw-border-gray-200 dark:tw-border-gray-700 tw-text-right"
-            >
-              <span class="tw-sr-only">Actions</span>
             </th>
           </tr>
         </thead>
@@ -204,7 +196,7 @@
             @dblclick="handleRowDblClick(row)"
           >
             <!-- Checkbox column -->
-            <td v-if="selectable" class="tw-px-4 tw-py-2.5 tw-whitespace-nowrap" @click.stop>
+            <td v-if="selectable" class="tw-px-4 tw-py-4 tw-whitespace-nowrap" @click.stop>
               <input
                 type="checkbox"
                 class="tw-rounded tw-border-gray-300 tw-text-primary focus:tw-ring-primary tw-h-4 tw-w-4 tw-bg-white dark:tw-bg-slate-700 dark:tw-border-gray-600 tw-cursor-pointer tw-opacity-50 group-hover:tw-opacity-100 tw-transition-opacity"
@@ -217,7 +209,7 @@
             <td
               v-for="col in columns"
               :key="col.key"
-              class="tw-px-3 tw-py-2.5 tw-whitespace-nowrap tw-text-sm tw-text-slate-700 dark:tw-text-slate-200"
+              class="tw-px-4 tw-py-4 tw-whitespace-nowrap tw-text-sm tw-text-slate-700 dark:tw-text-slate-200"
               :class="col.cellClass"
             >
               <slot
@@ -228,14 +220,7 @@
                 {{ formatCell(row[col.key], col) }}
               </slot>
             </td>
-            <!-- Actions column -->
-            <td
-              v-if="hasActions"
-              class="tw-px-3 tw-py-3 tw-text-right tw-whitespace-nowrap"
-              @click.stop
-            >
-              <slot name="actions" :row="row" />
-            </td>
+
           </tr>
           <tr v-else>
             <td :colspan="totalColumns" class="tw-px-4 tw-py-12 tw-text-center tw-text-slate-500 dark:tw-text-slate-400">

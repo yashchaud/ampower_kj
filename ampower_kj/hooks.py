@@ -29,7 +29,7 @@ after_install = "ampower_kj.install.after_install"
 
 # include js, css files in header of desk.html
 app_include_css = [
-	"/assets/ampower_kj/css/ampower_kj.css",
+	"/assets/ampower_kj/css/tailwind.bundle.css",
 ]
 # app_include_js = [
 
