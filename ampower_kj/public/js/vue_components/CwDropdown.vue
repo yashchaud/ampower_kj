@@ -40,11 +40,11 @@
         <div
           v-if="isOpen"
           :style="dropdownStyle"
-          class="tw-fixed tw-z-[80] tw-bg-white tw-rounded-xl tw-shadow-dropdown tw-border tw-border-slate-200 tw-py-2 tw-min-w-[200px]"
+          class="tw-fixed tw-z-[80] tw-bg-white dark:tw-bg-slate-800 tw-rounded-xl tw-shadow-dropdown tw-border tw-border-slate-200 dark:tw-border-slate-700 tw-py-2 tw-min-w-[200px]"
         >
         <!-- Header -->
-        <div v-if="title" class="tw-px-4 tw-py-2 tw-border-b tw-border-slate-100">
-          <p class="tw-text-xs tw-font-semibold tw-text-slate-500 tw-uppercase tw-tracking-wider">
+        <div v-if="title" class="tw-px-4 tw-py-2 tw-border-b tw-border-slate-100 dark:tw-border-slate-700">
+          <p class="tw-text-xs tw-font-semibold tw-text-slate-500 dark:tw-text-slate-400 tw-uppercase tw-tracking-wider">
             {{ title }}
           </p>
         </div>
@@ -52,12 +52,12 @@
         <!-- Items -->
         <slot>
           <template v-for="(item, index) in items" :key="item.value || index">
-            <div v-if="item.divider" class="tw-my-2 tw-border-t tw-border-slate-100"></div>
+            <div v-if="item.divider" class="tw-my-2 tw-border-t tw-border-slate-100 dark:tw-border-slate-700"></div>
             <button
               v-else
               class="tw-w-full tw-flex tw-items-center tw-gap-3 tw-px-4 tw-py-2.5 tw-text-sm tw-text-left tw-transition-colors"
               :class="[
-                item.danger ? 'tw-text-red-600 hover:tw-bg-red-50' : 'tw-text-slate-700 hover:tw-bg-slate-50',
+                item.danger ? 'tw-text-red-600 hover:tw-bg-red-50 dark:hover:tw-bg-red-900/20' : 'tw-text-slate-700 dark:tw-text-slate-200 hover:tw-bg-slate-50 dark:hover:tw-bg-slate-700',
                 item.disabled ? 'tw-opacity-50 tw-cursor-not-allowed' : ''
               ]"
               :disabled="item.disabled"
@@ -66,20 +66,20 @@
               <div
                 v-if="item.icon"
                 class="tw-w-8 tw-h-8 tw-rounded-lg tw-flex tw-items-center tw-justify-center"
-                :class="item.iconBg || 'tw-bg-slate-100'"
+                :class="item.iconBg || 'tw-bg-slate-100 dark:tw-bg-slate-700'"
               >
                 <span
                   class="material-symbols-outlined tw-text-lg"
-                  :class="item.iconClass || 'tw-text-slate-600'"
+                  :class="item.iconClass || 'tw-text-slate-600 dark:tw-text-slate-300'"
                 >
                   {{ item.icon }}
                 </span>
               </div>
               <div class="tw-flex-1">
                 <p class="tw-font-medium">{{ item.label }}</p>
-                <p v-if="item.description" class="tw-text-xs tw-text-slate-500">{{ item.description }}</p>
+                <p v-if="item.description" class="tw-text-xs tw-text-slate-500 dark:tw-text-slate-400">{{ item.description }}</p>
               </div>
-              <span v-if="item.shortcut" class="tw-text-xs tw-text-slate-400 tw-font-mono">{{ item.shortcut }}</span>
+              <span v-if="item.shortcut" class="tw-text-xs tw-text-slate-400 dark:tw-text-slate-500 tw-font-mono">{{ item.shortcut }}</span>
             </button>
           </template>
         </slot>

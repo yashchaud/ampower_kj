@@ -223,7 +223,7 @@
           </Teleport>
         </div>
 
-        <div v-if="currentTab !== 'Delivered'" class="tw-hidden sm:tw-block tw-w-px tw-h-6 tw-bg-slate-200 tw-mx-2"></div>
+        <div v-if="currentTab !== 'Delivered'" class="tw-hidden sm:tw-block tw-w-px tw-h-6 tw-bg-slate-200 dark:tw-bg-slate-700 tw-mx-2"></div>
         <CwDropdown
           v-if="currentTab !== 'Delivered'"
           label="Actions"
@@ -308,7 +308,7 @@
       <template #cell-sales_order="{ row }">
         <a
           :href="`/app/sales-order/${row.sales_order}`"
-          class="tw-text-primary-600 hover:tw-text-primary-800 hover:tw-underline"
+          class="tw-text-primary-600 dark:tw-text-primary-400 hover:tw-text-primary-800 dark:hover:tw-text-primary-300 hover:tw-underline"
           @click.stop
         >
           {{ row.sales_order }}

@@ -1,5 +1,5 @@
 <template>
-  <div class="tw-relative tw-flex tw-w-full tw-border-b-2 tw-border-slate-200 tw-overflow-x-auto tw-overflow-y-hidden no-scrollbar">
+  <div class="tw-relative tw-flex tw-w-full tw-border-b-2 tw-border-slate-200 dark:tw-border-slate-700 tw-overflow-x-auto tw-overflow-y-hidden no-scrollbar">
     <template v-for="(tab, index) in tabs" :key="tab.name">
       <!-- Hidden radio input for state management -->
       <input
@@ -20,8 +20,8 @@
         class="tw-flex tw-items-center tw-justify-center tw-gap-2 tw-py-4 tw-px-6 tw-text-sm tw-font-medium tw-cursor-pointer tw-transition-colors tw-duration-400 tw-ease-in-out tw-whitespace-nowrap tw-flex-1"
         :class="[
           tab.name === modelValue
-            ? 'tw-text-blue-600 tw-font-semibold'
-            : 'tw-text-slate-500 hover:tw-text-slate-700'
+            ? 'tw-text-blue-600 dark:tw-text-blue-400 tw-font-semibold'
+            : 'tw-text-slate-500 dark:tw-text-slate-400 hover:tw-text-slate-700 dark:hover:tw-text-slate-300'
         ]"
       >
         <span>{{ tab.label || tab.name }}</span>
@@ -30,8 +30,8 @@
           class="tw-px-2 tw-py-0.5 tw-text-xs tw-font-semibold tw-rounded-full tw-transition-colors tw-duration-400 tw-ease-in-out"
           :class="[
             tab.name === modelValue
-              ? 'tw-bg-blue-100 tw-text-blue-700'
-              : 'tw-bg-slate-100 tw-text-slate-600'
+              ? 'tw-bg-blue-100 dark:tw-bg-blue-900 tw-text-blue-700 dark:tw-text-blue-300'
+              : 'tw-bg-slate-100 dark:tw-bg-slate-800 tw-text-slate-600 dark:tw-text-slate-400'
           ]"
         >
           {{ tab.count }}
@@ -42,7 +42,7 @@
     <!-- The Glider (Fluid Line) -->
     <div
       v-show="gliderWidth > 0"
-      class="tw-absolute tw-bottom-0 tw-left-0 tw-h-[2px] tw-bg-blue-600"
+      class="tw-absolute tw-bottom-0 tw-left-0 tw-h-[2px] tw-bg-blue-600 dark:tw-bg-blue-500"
       :style="gliderStyle"
     ></div>
   </div>
